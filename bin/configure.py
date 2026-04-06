@@ -115,7 +115,7 @@ def create_configuration_folder(path):
     
 def create_configuration_file(path, content):
     print('creating %s' % path)
-    with open(path, 'w') as file:
+    with open(path, 'w', encoding="utf-8") as file:
         content = content.replace('ROOT', getcwd())
         file.write('\n'.join(map(str.strip, content.strip().split('\n'))))
         file.write('\n')
@@ -133,15 +133,16 @@ def process_config_file(path):
     Reads a config.txt file and writes config.json
     '''
     if not options.silent: print('reading %s' % path)
-    with open(path) as file:
+    with open(path, encoding="utf-8") as file:
         data = process_config_content(file, path)
     output_path = splitext(path)[0] + '.json'
     if options.testing:
         print('NOT writing %s' % output_path)
         return
     if not options.silent: print('writing %s' % output_path)
-    with open(output_path, 'w') as file:
-        file.write(json.dumps(data, indent=4))
+    with open(output_path, 'w', encoding="utf-8") as file:
+        # note that ensure_ascii=False == "leave emoji as emoji"
+        file.write(json.dumps(data, indent=4, ensure_ascii=False))
 
 def process_config_content(lines, filename=None):
     '''
@@ -165,15 +166,16 @@ def process_tag_file(path):
     Reads a types.txt or statuses.txt file and writes the corresponding json file.
     '''
     if not options.silent: print('reading %s' % path)
-    with open(path) as file:
+    with open(path, encoding="utf-8") as file:
         data = process_tag_content(file, path)
     output_path = splitext(path)[0] + '.json'
     if options.testing:
         print('NOT writing %s' % output_path)
         return
     if not options.silent: print('writing %s' % output_path)
-    with open(output_path, 'w') as file:
-        file.write(json.dumps(data, indent=4))
+    with open(output_path, 'w', encoding="utf-8") as file:
+        # note that ensure_ascii=False == "leave emoji as emoji"
+        file.write(json.dumps(data, indent=4, ensure_ascii=False))
 
 def process_tag_content(lines, path=None):
     '''
