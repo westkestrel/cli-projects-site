@@ -79,6 +79,39 @@ def create_configuration_folder(path):
         title: My Recent Projects
         root: ROOT
     ''')
+    create_configuration_file(join(path, 'types.txt'), '''
+        # List your project types here, then run bin/configure.py
+        # to convert them to a JSON file.
+        #
+        # Comma-separated items will share an icon, but retain their names
+        # Put project-type descriptions in parenthesis or after a colon
+        
+        🎙️ Audio, Podcast, Sound
+        🎬 Movie, Video, Flash
+        🎞️️ Photography
+        🖋️ Prose, Poetry, Blog, Writing
+        📝 Notes, Docs
+        ＞ Script, Command-Line Utility
+        🖥️ Application (desktop)
+        📱 App (tablet or phone)
+        🕸️ Website
+        🔧 Admin, Sysadmin, Webadmin
+    ''')
+    create_configuration_file(join(path, 'statuses.txt'), '''
+        # List your project statuses here, then run bin/configure.py
+        # to convert them to a JSON file.
+        
+        ✏️ Sketch: Initial sketches for an idea that never really took off
+        ▶️ Active: Under active development
+        ⏸️ Paused: Briefly paused due to competing priorities
+        📸 Snapshot: Project is open-ended, and this is a copy at a particular point in time
+        🟡 Unstable: Paused indefinitely, and not in a functional state
+        🟢 Stable: Paused indefinitely
+        ✅ Complete: Project is complete
+        🎁 Delivered: Delivered to a client
+        💀 Abandoned: Abandoned after a fairly substantial investment
+        🪦 Obsolete: Superceded by a newer version
+    ''')
     
 def create_configuration_file(path, content):
     print('creating %s' % path)
@@ -126,6 +159,86 @@ def process_config_content(lines, filename=None):
         key, value = parts
         config[key] = value
     return config
+    
+def process_tag_file(path):
+    '''
+    Reads a types.txt or statuses.txt file and writes the corresponding json file.
+    '''
+    if not options.silent: print('reading %s' % path)
+    with open(path) as file:
+        data = process_tag_content(file, path)
+    output_path = splitext(path)[0] + '.json'
+    if options.testing:
+        print('NOT writing %s' % output_path)
+        return
+    if not options.silent: print('writing %s' % output_path)
+    with open(output_path, 'w') as file:
+        file.write(json.dumps(data, indent=4))
+
+def process_tag_content(lines, path=None):
+    '''
+    Scans lines of the "project types" format
+        📝 Notes (including spreadsheets), Docs (aka Documentation)
+    or the "project statuses" format
+        🪦 Obsolete: Superceded by a later project
+    and returns an array of dictionaries:
+        [{
+            "name": "Notes",
+            "description": "including spreadsheets",
+            "alternates": ["Docs"],
+            "aliases": {
+                "Documentation": "Docs"
+            },
+            "icon": "📝"
+        }, {
+            "name": "Obsolete",
+            "description": "Superceded by a later project",
+            "icon": "🪦"
+        }]
+    '''
+    descriptions = OrderedDict()
+    def capture(match):
+        key = str(len(descriptions))
+        colon, parenthesis = match.group(1, 2)
+        value = parenthesis if parenthesis != None else colon
+        descriptions[key] = value
+        return '@%s' % key
+    tags = []
+    for i, line in enumerate(lines, start=1):
+        tag = {}
+        line = line.strip()
+        if len(line) == 0: continue
+        match = re.match(r'(\S+)\s+(.+)', line)
+        if not match: raise ConfigError('malformed line', path, i, line)
+        icon, tail = match.group(1, 2)
+        tail = re.sub(r':\s+([^,]+)|\s*\(([^)]+)\)', capture, tail)
+        terms = re.split(r',\s*', tail)
+        for i, term in enumerate(list(terms)):
+            bits = term.split('@')
+            if len(bits) == 1:
+                descriptions[term] = None
+            else:
+                terms[i] = bits[0]
+                descriptions[bits[0]] = descriptions[bits[1]]
+                del descriptions[bits[1]]
+        for key, value in list(descriptions.items()):
+            if value == None:
+                del descriptions[key]
+        
+        if len(terms) == 1: tag['name'] = terms[0]
+        else: tag['names'] = terms
+        num_descriptions = len(list(filter(lambda v: v != None, descriptions.values())))
+        try: primary_description = descriptions[terms[0]]
+        except KeyError: primary_description = None
+        if num_descriptions == 0:
+            pass
+        elif num_descriptions > 1 or len(terms) > 1 or primary_description == None:
+            tag['descriptions'] = descriptions
+        else:
+            tag['description'] = primary_description
+        tag['icon'] = icon
+        tags.append(tag)
+    return tags
     
 if __name__ == '__main__':
     options = parser.parse_args()
