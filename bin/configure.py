@@ -84,14 +84,15 @@ def create_configuration_folder(path):
         # to convert them to a JSON file.
         #
         # Comma-separated items will share an icon, but retain their names
-        # Put project-type descriptions in parenthesis or after a colon
+        # Put project-type descriptions in parenthesis
+        # aka items will be renamed (i.e, "Photos" projects become "Photography")
         
         🎙️ Audio, Podcast, Sound
         🎬 Movie, Video, Flash
-        🎞️️ Photography
+        🎞️️ Photography (aka Photos)
         🖋️ Prose, Poetry, Blog, Writing
         📝 Notes, Docs
-        ＞ Script, Command-Line Utility
+        ＞ Script (aka Shellscript), Command-Line Utility
         🖥️ Application (desktop)
         📱 App (tablet or phone)
         🕸️ Website
@@ -125,6 +126,8 @@ def process(path):
         raise ConfigError('Not a text file: %s' % path, None, None, None)
     if basename(path) == 'config.txt':
         process_config_file(path)
+    elif basename(path) in set(['statuses.txt', 'types.txt']):
+        process_tag_file(path)
     else:
         raise ConfigError('unrecognized configuration file', path, None, None)
         
@@ -185,9 +188,10 @@ def process_tag_content(lines, path=None):
         🪦 Obsolete: Superceded by a later project
     and returns an array of dictionaries:
         [{
-            "name": "Notes",
-            "description": "including spreadsheets",
-            "alternates": ["Docs"],
+            "names": ["Notes", "Docs"],
+            "descriptions": {
+                "Notes": "including spreadsheets"
+            },
             "aliases": {
                 "Documentation": "Docs"
             },
@@ -198,31 +202,45 @@ def process_tag_content(lines, path=None):
             "icon": "🪦"
         }]
     '''
+    aliases = OrderedDict()
     descriptions = OrderedDict()
+    
     def capture(match):
         key = str(len(descriptions))
         colon, parenthesis = match.group(1, 2)
         value = parenthesis if parenthesis != None else colon
-        descriptions[key] = value
-        return '@%s' % key
+        if value.startswith('aka '):
+            aliases[key] = re.split(r',\s*', value[4:])
+            return '@%s' % key
+        else:
+            descriptions[key] = value
+            return ':%s' % key
+        
     tags = []
     for i, line in enumerate(lines, start=1):
         tag = {}
-        line = line.strip()
+        line = re.sub(r'\s*#.*', '', line).strip()
         if len(line) == 0: continue
+        
         match = re.match(r'(\S+)\s+(.+)', line)
         if not match: raise ConfigError('malformed line', path, i, line)
+        
         icon, tail = match.group(1, 2)
         tail = re.sub(r':\s+([^,]+)|\s*\(([^)]+)\)', capture, tail)
         terms = re.split(r',\s*', tail)
-        for i, term in enumerate(list(terms)):
-            bits = term.split('@')
-            if len(bits) == 1:
-                descriptions[term] = None
+        for i, term_plus in enumerate(list(terms)):
+            term, alias_id, desc_id = re.match('^(.*?)(?:@(.+))?(?::(.+))?$', term_plus).group(1, 2, 3)
+            terms[i] = term
+            if alias_id != None:
+                for alias in aliases[alias_id]:
+                    aliases[alias] = term
+                del aliases[alias_id]
+            if desc_id != None:
+                descriptions[term] = descriptions[desc_id]
+                del descriptions[desc_id]
             else:
-                terms[i] = bits[0]
-                descriptions[bits[0]] = descriptions[bits[1]]
-                del descriptions[bits[1]]
+                descriptions[term] = None
+                
         for key, value in list(descriptions.items()):
             if value == None:
                 del descriptions[key]
@@ -230,8 +248,13 @@ def process_tag_content(lines, path=None):
         if len(terms) == 1: tag['name'] = terms[0]
         else: tag['names'] = terms
         num_descriptions = len(list(filter(lambda v: v != None, descriptions.values())))
+        
         try: primary_description = descriptions[terms[0]]
         except KeyError: primary_description = None
+        
+        if len(aliases) > 0:
+            tag['aliases'] = aliases
+            
         if num_descriptions == 0:
             pass
         elif num_descriptions > 1 or len(terms) > 1 or primary_description == None:
@@ -240,6 +263,7 @@ def process_tag_content(lines, path=None):
             tag['description'] = primary_description
         tag['icon'] = icon
         tags.append(tag)
+        
     return tags
     
 if __name__ == '__main__':

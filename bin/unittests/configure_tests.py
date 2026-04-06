@@ -156,3 +156,22 @@ class TestTagFile(unittest.TestCase):
             },
         ])
         
+    def test_tags_with_aliases(self):
+        input = '''
+            > Script (aka Shellscript), Command-Line Utility (compiled)
+        '''
+        input = list(map(str.strip, input.split('\n')))
+        content = process_tag_content(input)
+        self.assertEqual(content, [
+            {
+                "names": ["Script", "Command-Line Utility"],
+                "aliases": {
+                    "Shellscript": "Script",
+                },
+                "descriptions": {
+                    "Command-Line Utility": "compiled",
+                },
+                "icon": ">",
+            },
+        ])
+        
