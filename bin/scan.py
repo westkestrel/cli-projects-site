@@ -6,6 +6,7 @@ Scans the project-root folder for README files, reads them, and updates
 
 from argparse import ArgumentParser
 from collections import OrderedDict
+from time import localtime, strftime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, isdir, join
 from os import mkdir, walk
@@ -245,6 +246,13 @@ MONTHS = {
     'dec': '12',
 }
 def normalize_date_string(text):
+    '''
+    Accepts date strings in a variety of formats (and integers and floats representing
+    seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
+    '''
+    if type(text) == int or type(text) == float:
+        return strftime('%Y/%m/%d', localtime(text))
+        
     text = re.sub(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? *', '', text)
     match = re.match(r'(\d{1,2})-(\w{3,})-(\d{4})', text)
     if match:
@@ -255,7 +263,7 @@ def normalize_date_string(text):
         month, day, year = match.group(1, 2, 3)
         text = '%s/%s/%s' % (year, MONTHS[month.lower()[0:3]], day.rjust(2, '0'))
     text = text.replace('-', '/')
-    return text
+    return text[0:10]
 
 if __name__ == '__main__':
     main(argv[1:])
