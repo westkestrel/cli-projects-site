@@ -43,12 +43,13 @@ class ConfigError(Exception):
         self.line_number = line_number
         self.line_content = line_content
     def __str__(self):
-        return '%s: %s\n%s\n%s' % (
+        text = '%s: %s\n%s\n%s' % (
             self.filename if self.filename != None else 'stdin',
             self.line_number,
             self.line_content,
             self.message
         )
+        return text.replace(': None', '').replace('\nNone', '')
 
 def main():
     if len(options.sources) == 0: sources = sorted(glob('config/*.txt'))
@@ -59,8 +60,14 @@ def main():
     if len(sources) == 0:
         print('no configuration files found in config/ folder', file=stderr)
         return 1
+    result = 0
     for source in sources:
-        process(source)
+        try: process(source)
+        except ConfigError as e:
+            print('**error: %s' % e, file=stderr)
+            result = 1
+            continue
+    return result
         
 def offer_to_create_configuration_files(path):
     print('no %s/ folder found. Would you like to create one? [y] ' % path, end='')
