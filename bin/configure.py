@@ -5,7 +5,7 @@ Reads the .txt files in the config directory and writes out .json files.
 
 from argparse import ArgumentParser
 from collections import OrderedDict
-from os.path import basename, exists, join, splitext
+from os.path import basename, exists, expanduser, join, splitext
 from os import getcwd, mkdir
 from glob import glob
 from sys import stderr, stdin, stdout
@@ -132,7 +132,8 @@ def create_configuration_folder(path):
 def create_configuration_file(path, content):
     print('creating %s' % path)
     with open(path, 'w', encoding="utf-8") as file:
-        content = content.replace('ROOT', getcwd())
+        home = expanduser('~')
+        content = content.replace('ROOT', getcwd().replace(home, '~'))
         file.write('\n'.join(map(str.strip, content.strip().split('\n'))))
         file.write('\n')
     
