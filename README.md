@@ -18,10 +18,10 @@ bin/configure.py
 Reads the .txt files in the config folder and writes out corresponding .json files.
 
 ```
-bin/update.py
+bin/scan.py
 ```
 
-Reads the README files in your **projects** folder tree (creating boilerplate files if absent), updates the .txt files in the **data** folder, and then generates static HTML files to view your project descriptions into the **output** folder.
+Reads the README files in your **projects** folder tree, updates the .json files in the **data** folder.
 
 ## Configuration
 
