@@ -11,6 +11,7 @@ from glob import glob
 from os.path import basename, dirname, exists, expanduser, isdir, join
 from os import mkdir, walk
 from sys import argv
+from time import localtime, strftime
 import json
 import re
 
@@ -66,8 +67,22 @@ class Config:
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
         }
         if path != None:
+            self.read(path)
+            
+    def read(self, path):
+        if path.endswith('.json'):
             for key, value in json.load(open(path)).items():
                 self.values[key] = value
+        elif path.endswith('.txt'):
+            with open(path, encoding='utf-8') as file:
+                for line in file:
+                    line = re.sub(r'#.*', '', line).strip()
+                    if line == '': continue
+                    key, value = re.match(r'^([^:]+):\s*(.+)', line).group(1, 2)
+                    if value == 'None' or value == 'null': value = None
+                    self.values[key] = value
+        else:
+            raise ValueError('%s has unexpected file extension' % path)
             
     def __getattr__(self, key):
         try: return self.values[key]
@@ -75,6 +90,119 @@ class Config:
     
     def __getitem__(self, key):
         return self.values[key]
+
+config = Config('config/config.txt')
+        
+class Folder:
+    '''
+    A folder is directory in the filesystem
+    '''
+    
+    def __init__(self, path):
+        self.rootpath = config.root
+        root = join(config.root, '') # add trailing slash
+        self.abspath = path
+        self.relpath = path[len(root):] if path.startswith(root) else None
+        
+    def scan_for_project_metadata(self):
+        data = OrderedDict()
+        root = join(config.root,) # add trailing slash
+        files = self.walk
+        data['name'] = basename(self.abspath)
+        data['path'] = self.relpath
+        data['commenced'] = normalize_date_string(self.get_ctime(self.abspath))
+        newest, timestamp = self.get_newest_file(self.abspath)
+        data['newest'] = newest[len(self.abspath) + 1: ]
+        data['completed'] = normalize_date_string(timestamp)
+        data['type'] = None
+        data['status'] = None
+        if data['name'].startswith('www.'): data['type'] = 'Website'
+        if self.exists(join(self.abspath, 'package.json')): data['type'] = 'Web App'
+        return data
+        
+    def exists(self, path):
+        '''
+        Returns whether a file or folder exists at the given path.
+        '''
+        return exists(path)
+        
+    def get_ctime(self, path):
+        '''
+        Returns the timestamp (seconds since epoch) of the creation date of the file
+        or folder at the given path.  Note that you *cannot* simply use getctime(), as that
+        always returns "now" for a directory on MacOS.
+        '''
+        command = ['stat', '-f', '%B', path]
+        output = subprocess.run(command, capture_output=True, text=True)
+        timestamp = output.stdout
+        return int(timestamp)
+        
+    def get_mtime(self, path):
+        '''
+        Returns the timestamp (seconds since epoch) of the modification date of the file
+        or folder at the given path.
+        '''
+        return getmtime(path)
+        
+    def get_newest_file(self, path):
+        '''
+        Returns the path nd timestamp of the newest file within the given folder.
+        '''
+        newest = path
+        timestamp = self.get_mtime(path)
+        for root, dirs, files in self.walk(path):
+            for file in files:
+                subpath = join(root, file)
+                subtime = self.get_mtime(subpath)
+                if subtime > timestamp:
+                    newest = subpath
+                    timestamp = subtime
+        return newest, timestamp
+        
+    def walk(self, path):
+        return walk(path)
+
+class TestableFolder(Folder):
+    '''
+    A testable subclass of Folder. To use it, you provide the path and a dictionary
+    of fake timestamps relative to config.root, e.g.,
+      // assuming config.root is '~/Projects'
+      f = TestableFolder('~/Projects/2026/MyProject', {
+        '2026/MyProject': (0, 1),
+        '2026/MyProject/README.md': (10, 50),
+      })
+    '''
+    def __init__(self, path, content):
+        '''
+        path: absolute path to the folder (which need not actually exist on disk)
+        content: a dictionary mapping paths (relative to config.root) to a tuple
+          (creation timestamp, modification timestamp)
+        '''
+        super(TestableFolder, self).__init__(path)
+        self.content = content
+        
+    def exists(self, path):
+        rpath = path[len(self.rootpath) + 1:]
+        return rpath in self.content
+        
+    def get_ctime(self, path):
+        rpath = path[len(self.rootpath) + 1:]
+        return self.content[rpath][0]
+        
+    def get_mtime(self, path):
+        rpath = path[len(self.rootpath) + 1:]
+        return self.content[rpath][1]
+        
+    def walk(self, path):
+        '''
+        Walks the entire content tree in a single step. This is not strictly accurate,
+        but is good enough for unit tests.
+        '''
+        root_relative_paths = sorted(self.content.keys())
+        index = len(self.relpath) + 1
+        project_relative_paths = list(filter(lambda p: p != '', map(lambda p: p[index:], root_relative_paths)))
+        return [[self.abspath, [], project_relative_paths]]
+
 
 class Project:
     '''
@@ -213,11 +341,11 @@ class Library:
 def main(args=None):
     global options
     global config
-    config = Config('config/config.json')
+    config = Config('config/config.txt')
     options = make_parser().parse_args(args)
     if not options.skip_configure:
         configure_main()
-        config = Config('config/config.json')
+        config = Config('config/config.txt')
     if len(options.sources) == 0: sources = sorted(glob(expanduser(config.root)))
     else: sources = options.sources
     library = Library()
