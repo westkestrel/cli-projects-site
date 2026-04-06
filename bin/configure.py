@@ -90,8 +90,10 @@ def create_configuration_folder(path):
         # List your project types here, then run bin/configure.py
         # to convert them to a JSON file.
         #
+        # Put project-type descriptions in parenthesis or after a colon
+        # (if your description contains a comma you must use parenthesis)
+        #
         # Comma-separated items will share an icon, but retain their names
-        # Put project-type descriptions in parenthesis
         # aka items will be renamed (i.e, "Photos" projects become "Photography")
         
         🎙️ Audio, Podcast, Sound
@@ -99,7 +101,7 @@ def create_configuration_folder(path):
         🎞️️ Photography (aka Photos)
         🖋️ Prose, Poetry, Blog, Writing
         📝 Notes, Docs
-        ＞ Script (aka Shellscript), Command-Line Utility
+        ＞ Script (aka Shellscript), Command-Line Utility (compiled code)
         🖥️ Application (desktop)
         📱 App (tablet or phone)
         🕸️ Website
@@ -108,12 +110,18 @@ def create_configuration_folder(path):
     create_configuration_file(join(path, 'statuses.txt'), '''
         # List your project statuses here, then run bin/configure.py
         # to convert them to a JSON file.
+        #
+        # Put project-status descriptions in parenthesis or after a colon
+        # (if your description contains a comma you must use parenthesis)
+        #
+        # Comma-separated items will share an icon, but retain their names
+        # aka items will be renamed (i.e, "Photos" projects become "Photography")
         
         ✏️ Sketch: Initial sketches for an idea that never really took off
         ▶️ Active: Under active development
         ⏸️ Paused: Briefly paused due to competing priorities
-        📸 Snapshot: Project is open-ended, and this is a copy at a particular point in time
-        🟡 Unstable: Paused indefinitely, and not in a functional state
+        📸 Snapshot (Project is open-ended, and this is a copy at a particular point in time)
+        🟡 Unstable (aka Broken): Paused indefinitely and not in a functional state
         🟢 Stable: Paused indefinitely
         ✅ Complete: Project is complete
         🎁 Delivered: Delivered to a client
@@ -225,6 +233,8 @@ def process_tag_content(lines, path=None):
         
     tags = []
     for i, line in enumerate(lines, start=1):
+        aliases = OrderedDict()
+        descriptions = OrderedDict()
         tag = {}
         line = re.sub(r'\s*#.*', '', line).strip()
         if len(line) == 0: continue
@@ -236,7 +246,7 @@ def process_tag_content(lines, path=None):
         tail = re.sub(r':\s+([^,]+)|\s*\(([^)]+)\)', capture, tail)
         terms = re.split(r',\s*', tail)
         for i, term_plus in enumerate(list(terms)):
-            term, alias_id, desc_id = re.match('^(.*?)(?:@(.+))?(?::(.+))?$', term_plus).group(1, 2, 3)
+            term, alias_id, desc_id = re.match('^(.*?)(?:@(.+?))?(?::(.+?))?$', term_plus).group(1, 2, 3)
             terms[i] = term
             if alias_id != None:
                 for alias in aliases[alias_id]:

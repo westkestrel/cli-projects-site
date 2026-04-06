@@ -158,7 +158,7 @@ class TestTagFile(unittest.TestCase):
         
     def test_tags_with_aliases(self):
         input = '''
-            > Script (aka Shellscript), Command-Line Utility (compiled)
+            > Script (aka Shellscript), Command-Line Utility (compiled code)
         '''
         input = list(map(str.strip, input.split('\n')))
         content = process_tag_content(input)
@@ -169,7 +169,28 @@ class TestTagFile(unittest.TestCase):
                     "Shellscript": "Script",
                 },
                 "descriptions": {
-                    "Command-Line Utility": "compiled",
+                    "Command-Line Utility": "compiled code",
+                },
+                "icon": ">",
+            },
+        ])
+        
+    def test_tags_with_aliases_and_descriptions(self):
+        input = '''
+            > Script (aka Shellscript) (perl, python, bash, etc.), Command-Line Utility (aka CLU): compiled code
+        '''
+        input = list(map(str.strip, input.split('\n')))
+        content = process_tag_content(input)
+        self.assertEqual(content, [
+            {
+                "names": ["Script", "Command-Line Utility"],
+                "aliases": {
+                    "Shellscript": "Script",
+                    "CLU": "Command-Line Utility",
+                },
+                "descriptions": {
+                    "Script": "perl, python, bash, etc.",
+                    "Command-Line Utility": "compiled code",
                 },
                 "icon": ">",
             },
