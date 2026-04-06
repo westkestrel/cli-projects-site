@@ -8,32 +8,34 @@ from collections import OrderedDict
 from os.path import basename, exists, expanduser, join, splitext
 from os import getcwd, mkdir
 from glob import glob
-from sys import stderr, stdin, stdout
+from sys import argv, stderr, stdin, stdout
 import json
 import re
 
 options = None
-parser = ArgumentParser(description=__doc__)
-parser.add_argument('-s', '--silent',
-    dest='silent', action='store_const',
-    const=True,
-    default=False,
-    help='produce less output')
-parser.add_argument('-v', '--verbose',
-    dest='verbose', action='store_const',
-    const=True,
-    default=False,
-    help='produce more output')
-parser.add_argument('-t', '--test',
-    dest='testing', action='store_const',
-    const=True,
-    default=False,
-    help='read and process source files, but do not write output files')
-parser.add_argument(
-    dest='sources', action='store',
-    default=list(),
-    nargs="*",
-    help='process SOURCES rather than config/*.txt')
+def make_parser():
+    parser = ArgumentParser(description=__doc__)
+    parser.add_argument('-s', '--silent',
+        dest='silent', action='store_const',
+        const=True,
+        default=False,
+        help='produce less output')
+    parser.add_argument('-v', '--verbose',
+        dest='verbose', action='store_const',
+        const=True,
+        default=False,
+        help='produce more output')
+    parser.add_argument('-t', '--test',
+        dest='testing', action='store_const',
+        const=True,
+        default=False,
+        help='read and process source files, but do not write output files')
+    parser.add_argument(
+        dest='sources', action='store',
+        default=list(),
+        nargs="*",
+        help='process SOURCES rather than config/*.txt')
+    return parser
     
 class ConfigError(Exception):
     def __init__(self, message, filename, line_number, line_content):
@@ -51,7 +53,9 @@ class ConfigError(Exception):
         )
         return text.replace(': None', '').replace('\nNone', '')
 
-def main():
+def main(args=None):
+    global options
+    options = make_parser().parse_args(args)
     if len(options.sources) == 0: sources = sorted(glob('config/*.txt'))
     else: sources = options.sources
     if len(sources) == 0 and not exists('config'):
@@ -85,6 +89,7 @@ def create_configuration_folder(path):
         
         title: My Recent Projects
         root: ROOT
+        projects: *19[0-9][0-9]/*, *20[0-9][0-9]/*
     ''')
     create_configuration_file(join(path, 'types.txt'), '''
         # List your project types here, then run bin/configure.py
@@ -285,5 +290,4 @@ def process_tag_content(lines, path=None):
     return tags
     
 if __name__ == '__main__':
-    options = parser.parse_args()
-    main()
+    main(argv[1:])
