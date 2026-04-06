@@ -7,8 +7,8 @@ Scans the project-root folder for README files, reads them, and updates
 from argparse import ArgumentParser
 from collections import OrderedDict
 from glob import glob
-from os.path import expanduser, isdir, join
-from os import walk
+from os.path import basename, dirname, exists, expanduser, isdir, join
+from os import mkdir, walk
 from sys import argv
 import json
 import re
@@ -64,8 +64,9 @@ class Config:
             'root': '~/Projects',
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
         }
-        for key, value in json.load(open(path)).items():
-            self.values[key] = value
+        if path != None:
+            for key, value in json.load(open(path)).items():
+                self.values[key] = value
             
     def __getattr__(self, key):
         try: return self.values[key]
@@ -84,8 +85,15 @@ class Project:
     STATUS_KEYS = set(['completed', 'abandoned', 'paused', 'resumed'])
     
     def __init__(self, path):
-        self.path = path
         self.metadata = OrderedDict()
+        self.metadata['Path'] = path
+        
+    def get_bucket_name(self):
+        parent_folder = dirname(self.path)
+        root = config.root
+        if not parent_folder.startswith(root):
+            raise ValueError('%s is not a subdirectory of %s' % (parent_folder, root))
+        return parent_folder[len(root)+1:]
         
     def scan_readme_file(self, path):
         if not options.silent: print('reading %s' % path)
@@ -129,6 +137,7 @@ class Library:
         self.projects = OrderedDict()
         
     def get_project(self, path, create=True):
+        if self.is_readme_path(path): path = dirname(path)
         try:
             return self.projects[path]
         except KeyError:
@@ -136,6 +145,9 @@ class Library:
         project = Project(path)
         self.projects[path] = project
         return project
+        
+    def is_readme_path(self, path):
+        return 'readme' in basename(path).lower()
         
     def make_regex(self, glob_list_string):
         glob_list = list(map(self.make_regex_from_glob, re.split(r', *', glob_list_string)))
@@ -172,6 +184,30 @@ class Library:
     def scan_readme_file(self, path):
         project = self.get_project(path, create=True)
         project.scan_readme_file(path)
+        
+    def write_buckets(self):
+        data_dir = 'data'
+        if not exists(data_dir) and not options.testing:
+            if not options.silent:
+                print('mkdir -p "%s"' % data_dir)
+            mkdir(data_dir)
+        buckets = dict()
+        for project in self.projects.values():
+            bucket_name = project.get_bucket_name()
+            try: buckets[bucket_name].append(project)
+            except KeyError: buckets[bucket_name] = [project]
+        for bucket_name in sorted(buckets.keys()):
+            self.write_bucket(bucket_name, buckets[bucket_name])
+            
+    def write_bucket(self, bucket_name, projects):
+        data = list(map(lambda p: p.metadata, projects))
+        path = join('data', '%s.json' % bucket_name)
+        if options.testing:
+            print('NOT writing %s' % path)
+            return
+        print('writing %s' % path)
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, indent=4, ensure_ascii=False)
 
 def main(args=None):
     global options
@@ -191,6 +227,8 @@ def main(args=None):
             library.scan_for_readme_files(source)
         else:
             library.scan_readme_file(source)
+    library.write_buckets()
+    
     
 MONTHS = {
     'jan': '01',

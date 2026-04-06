@@ -1,5 +1,6 @@
 import unittest
-from scan import Library, Project
+from os.path import join
+from scan import Config, Project, Library
 
 class TestProject(unittest.TestCase):
     def test_scan(self):
@@ -29,7 +30,16 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.status, 'Completed')
 
 class TestLibrary(unittest.TestCase):
+
     def test_regex(self):
         lib = Library()
         self.assertEqual(lib.make_regex('.*, _*, node_modules'), '^(?:[.].*|_.*|node_modules)$')
 
+    def test_get_project(self):
+        lib = Library()
+        c = Config(None)
+        p1 = lib.get_project(join(c.root, '2026/MyProject'))
+        self.assertEqual(p1.path, join(c.root, '2026/MyProject'))
+        p2 = lib.get_project(join(c.root, '2026/MyProject/README.txt'))
+        self.assertEqual(p2.path, join(c.root, '2026/MyProject'))
+    
