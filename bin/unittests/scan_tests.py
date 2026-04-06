@@ -1,14 +1,27 @@
 import unittest
 from os.path import join
-from scan import config, Config, Folder, TestableFolder, Project, Library, normalize_date_string
+from scan import config, Config, Folder, TestableFolder, Project, Library
+from scan import normalize_key, normalize_value, normalize_date_string
 
-class TestDateConversion(unittest.TestCase):
-    def test_normalization(self):
+class TestDateNormalization(unittest.TestCase):
+
+    def test_normalize_date_string(self):
         self.assertEqual(normalize_date_string('2026-02-14'), '2026/02/14')
         self.assertEqual(normalize_date_string('2026/02/14'), '2026/02/14')
+        self.assertEqual(normalize_date_string('14-Feb-2026'), '2026/02/14')
+        self.assertEqual(normalize_date_string('14-February-2026'), '2026/02/14')
         self.assertEqual(normalize_date_string('2026-02-14T12:30:00Z'), '2026/02/14')
         self.assertEqual(normalize_date_string(60*60*24*5), '1970/01/05')
 
+    def test_normalize_key(self):
+        self.assertEqual(normalize_key('Name'), 'name')
+        
+    def test_normalize_value(self):
+        self.assertEqual(normalize_value('MyProject', 'Name'), 'MyProject')
+        self.assertEqual(normalize_value('14-Feb-2026', 'Commenced'), '2026/02/14')
+        self.assertEqual(normalize_value('14-Feb-2026', 'Completed'), '2026/02/14')
+        self.assertEqual(normalize_value('14-Feb-2026', 'Abandoned'), '2026/02/14')
+        
 class TestFolder(unittest.TestCase):
 
     def test_init(self):

@@ -224,6 +224,10 @@ class Project:
             raise ValueError('%s is not a subdirectory of %s' % (parent_folder, root))
         return parent_folder[len(root)+1:]
         
+    def scan_folder_metadata(self, path):
+        data = Folder(path).scan_for_project_metadata()
+        return data
+        
     def scan_readme_file(self, path):
         if not options.silent: print('reading %s' % path)
         try:
@@ -358,6 +362,14 @@ def main(args=None):
             library.scan_readme_file(source)
     library.write_buckets()
     
+def normalize_key(text):
+    return text.lower()
+    
+DATE_FIELDS = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
+    
+def normalize_value(text, key):
+    if normalize_key(key) in DATE_FIELDS: return normalize_date_string(text)
+    return text
     
 MONTHS = {
     'jan': '01',
