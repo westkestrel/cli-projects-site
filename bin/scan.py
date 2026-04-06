@@ -92,13 +92,74 @@ class Config:
         return self.values[key]
 
 config = Config('config/config.txt')
+
+class Normalizer:
+    '''
+    Converts keys, values, and date strings to standard form
+    '''
+    def __init__(self):
+        self.date_fields = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
+        self.months = {
+            'jan': '01',
+            'feb': '02',
+            'mar': '03',
+            'apr': '04',
+            'may': '05',
+            'jun': '06',
+            'jul': '07',
+            'aug': '08',
+            'sep': '09',
+            'oct': '10',
+            'nov': '11',
+            'dec': '12',
+        }
+        
+    def key(self, text):
+        '''
+        Converts keys to snake_case
+        '''
+        return re.sub(r'([a-z])([A-Z])', r'\1_\2', text).replace('-', '_').lower()
+        
+    def value(self, text, key):
+        '''
+        Convertes date strings for known date fields.
+        '''
+        if self.key(key) in self.date_fields:
+            return self.date(text)
+        return text
+        
+    def item(self, key, value):
+        key = self.key(key)
+        value = self.value(value, key)
+        return key, value
+        
+    def date(self, text):
+        '''
+        Accepts date strings in a variety of formats (and integers and floats representing
+        seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
+        '''
+        if type(text) == int or type(text) == float:
+            return strftime('%Y/%m/%d', localtime(text))
+            
+        text = re.sub(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? *', '', text)
+        match = re.match(r'(\d{1,2})-(\w{3,})-(\d{4})', text)
+        if match:
+            day, month, year = match.group(1, 2, 3)
+            text = '%s/%s/%s' % (year, self.months[month.lower()[0:3]], day.rjust(2, '0'))
+        match = re.match(r'(\w{3,}) (\d{1,2}), (\d{4})', text)
+        if match:
+            month, day, year = match.group(1, 2, 3)
+            text = '%s/%s/%s' % (year, self.months[month.lower()[0:3]], day.rjust(2, '0'))
+        text = text.replace('-', '/')
+        return text[0:10]
         
 class Folder:
     '''
     A folder is directory in the filesystem
     '''
     
-    def __init__(self, path):
+    def __init__(self, path, normalizer=None):
+        self.normalizer = normalizer if normalizer != None else Normalizer()
         self.rootpath = config.root
         root = join(config.root, '') # add trailing slash
         self.abspath = path
@@ -110,10 +171,10 @@ class Folder:
         files = self.walk
         data['name'] = basename(self.abspath)
         data['path'] = self.relpath
-        data['commenced'] = normalize_date_string(self.get_ctime(self.abspath))
+        data['commenced'] = self.normalizer.date(self.get_ctime(self.abspath))
         newest, timestamp = self.get_newest_file(self.abspath)
         data['newest'] = newest[len(self.abspath) + 1: ]
-        data['completed'] = normalize_date_string(timestamp)
+        data['completed'] = self.normalizer.date(timestamp)
         data['type'] = None
         data['status'] = None
         if data['name'].startswith('www.'): data['type'] = 'Website'
@@ -213,9 +274,10 @@ class Project:
     DATE_KEYS = set(['date', 'commenced', 'completed', 'abandoned', 'paused', 'resumed'])
     STATUS_KEYS = set(['completed', 'abandoned', 'paused', 'resumed'])
     
-    def __init__(self, path):
+    def __init__(self, path, normalizer=None):
+        self.normalizer = normalizer if normalizer != None else Normalizer()
         self.metadata = OrderedDict()
-        self.metadata['Path'] = path
+        self['path'] = path
         
     def get_bucket_name(self):
         parent_folder = dirname(self.path)
@@ -240,25 +302,32 @@ class Project:
     def scan_readme_content(self, content):
         for i, line in enumerate(content, start=1):
             if i == 1 and line.startswith('# '):
-                self.metadata['Name'] = line[1:].strip()
+                self['name'] = line[1:].strip()
             line = re.sub(r'#.*', '', line).strip().strip('*')
             match = re.match(r'([\w-]+):\s*(.+)', line)
             if match:
                 key, value = match.group(1, 2)
-                lkey = key.lower()
-                if lkey in self.DATE_KEYS: value = normalize_date_string(value)
-                if lkey in self.STATUS_KEYS: self['Status'] = key
-                self[key] = value
+                nkey, nvalue = self.normalizer.item(key, value)
+                if nkey in self.STATUS_KEYS: self['status'] = key
+                self[nkey] = nvalue
                 
     def __getattr__(self, key):
-        key = key[0].upper() + key[1:]
-        try: return self.metadata[key]
-        except KeyError: return None
-        
+        try:
+            return self.metadata[key]
+        except KeyError:
+            try:
+                return self.metadata[self.normalizer.key(key)]
+            except KeyError:
+                return None
+                
     def __getitem__(self, key):
-        return self.metadata[key]
+        try:
+            return self.metadata[key]
+        except KeyError:
+            return self.metadata[self.normalizer.key(key)]
         
     def __setitem__(self, key, value):
+        key, value = self.normalizer.item(key, value)
         self.metadata[key] = value
     
 class Library:
@@ -362,48 +431,5 @@ def main(args=None):
             library.scan_readme_file(source)
     library.write_buckets()
     
-def normalize_key(text):
-    return text.lower()
-    
-DATE_FIELDS = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
-    
-def normalize_value(text, key):
-    if normalize_key(key) in DATE_FIELDS: return normalize_date_string(text)
-    return text
-    
-MONTHS = {
-    'jan': '01',
-    'feb': '02',
-    'mar': '03',
-    'apr': '04',
-    'may': '05',
-    'jun': '06',
-    'jul': '07',
-    'aug': '08',
-    'sep': '09',
-    'oct': '10',
-    'nov': '11',
-    'dec': '12',
-}
-def normalize_date_string(text):
-    '''
-    Accepts date strings in a variety of formats (and integers and floats representing
-    seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
-    '''
-    if type(text) == int or type(text) == float:
-        return strftime('%Y/%m/%d', localtime(text))
-        
-    text = re.sub(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? *', '', text)
-    match = re.match(r'(\d{1,2})-(\w{3,})-(\d{4})', text)
-    if match:
-        day, month, year = match.group(1, 2, 3)
-        text = '%s/%s/%s' % (year, MONTHS[month.lower()[0:3]], day.rjust(2, '0'))
-    match = re.match(r'(\w{3,}) (\d{1,2}), (\d{4})', text)
-    if match:
-        month, day, year = match.group(1, 2, 3)
-        text = '%s/%s/%s' % (year, MONTHS[month.lower()[0:3]], day.rjust(2, '0'))
-    text = text.replace('-', '/')
-    return text[0:10]
-
 if __name__ == '__main__':
     main(argv[1:])

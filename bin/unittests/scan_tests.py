@@ -1,26 +1,37 @@
 import unittest
 from os.path import join
-from scan import config, Config, Folder, TestableFolder, Project, Library
-from scan import normalize_key, normalize_value, normalize_date_string
+from scan import config, Config, Normalizer, Folder, TestableFolder, Project, Library
 
-class TestDateNormalization(unittest.TestCase):
+class TestNormalizer(unittest.TestCase):
 
-    def test_normalize_date_string(self):
-        self.assertEqual(normalize_date_string('2026-02-14'), '2026/02/14')
-        self.assertEqual(normalize_date_string('2026/02/14'), '2026/02/14')
-        self.assertEqual(normalize_date_string('14-Feb-2026'), '2026/02/14')
-        self.assertEqual(normalize_date_string('14-February-2026'), '2026/02/14')
-        self.assertEqual(normalize_date_string('2026-02-14T12:30:00Z'), '2026/02/14')
-        self.assertEqual(normalize_date_string(60*60*24*5), '1970/01/05')
+    def test_date(self):
+        n = Normalizer()
+        self.assertEqual(n.date('2026-02-14'), '2026/02/14')
+        self.assertEqual(n.date('2026/02/14'), '2026/02/14')
+        self.assertEqual(n.date('14-Feb-2026'), '2026/02/14')
+        self.assertEqual(n.date('14-February-2026'), '2026/02/14')
+        self.assertEqual(n.date('2026-02-14T12:30:00Z'), '2026/02/14')
+        self.assertEqual(n.date(60*60*24*5), '1970/01/05')
 
-    def test_normalize_key(self):
-        self.assertEqual(normalize_key('Name'), 'name')
+    def test_key(self):
+        n = Normalizer()
+        self.assertEqual(n.key('Name'), 'name')
+        self.assertEqual(n.key('CreationDate'), 'creation_date')
+        self.assertEqual(n.key('creation-date'), 'creation_date')
         
-    def test_normalize_value(self):
-        self.assertEqual(normalize_value('MyProject', 'Name'), 'MyProject')
-        self.assertEqual(normalize_value('14-Feb-2026', 'Commenced'), '2026/02/14')
-        self.assertEqual(normalize_value('14-Feb-2026', 'Completed'), '2026/02/14')
-        self.assertEqual(normalize_value('14-Feb-2026', 'Abandoned'), '2026/02/14')
+    def test_value(self):
+        n = Normalizer()
+        self.assertEqual(n.value('MyProject', 'Name'), 'MyProject')
+        self.assertEqual(n.value('14-Feb-2026', 'Commenced'), '2026/02/14')
+        self.assertEqual(n.value('14-Feb-2026', 'Completed'), '2026/02/14')
+        self.assertEqual(n.value('14-Feb-2026', 'Abandoned'), '2026/02/14')
+        
+    def test_item(self):
+        n = Normalizer()
+        self.assertEqual(n.item('Name', 'MyProject'), ('name', 'MyProject'))
+        self.assertEqual(n.item('Commenced', '14-Feb-2026'), ('commenced', '2026/02/14'))
+        self.assertEqual(n.item('Completed', '14-Feb-2026'), ('completed', '2026/02/14'))
+        self.assertEqual(n.item('Abandoned', '14-Feb-2026'), ('abandoned', '2026/02/14'))
         
 class TestFolder(unittest.TestCase):
 
