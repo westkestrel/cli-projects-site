@@ -115,6 +115,7 @@ class Normalizer:
     Converts keys, values, and date strings to standard form
     '''
     def __init__(self):
+        self.aliases = OrderedDict()
         self.date_fields = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
         self.months = {
             'jan': '01',
@@ -131,6 +132,19 @@ class Normalizer:
             'dec': '12',
         }
         
+    def add_alias(self, key, value, new_value):
+        '''
+        Registers a value alias for the given key. e.g., if you call
+          normalizer.add_alias('Type', 'Python', 'Script')
+        then
+          normalizer.value('Python', 'Type')
+        will have the value 'Script'.
+        '''
+        key = self.key(key)
+        if key not in self.aliases: self.aliases[key] = OrderedDict()
+        key_aliases = self.aliases[key]
+        key_aliases[value] = new_value
+        
     def key(self, text):
         '''
         Converts keys to snake_case
@@ -141,7 +155,14 @@ class Normalizer:
         '''
         Convertes date strings for known date fields.
         '''
-        if self.key(key) in self.date_fields:
+        key = self.key(key)
+        try:
+            key_aliases = self.aliases[key]
+            text = key_aliases[text]
+        except KeyError:
+            pass
+            
+        if key in self.date_fields:
             return self.date(text)
         return text
         
@@ -392,7 +413,8 @@ class Library:
     A library is a collection of projects.
     '''
     
-    def __init__(self):
+    def __init__(self, normalizer=None):
+        self.normalizer = normalizer if normalizer != None else Normalizer()
         self.projects = OrderedDict()
         
     def get_project(self, path, create=True):
@@ -401,7 +423,7 @@ class Library:
             return self.projects[path]
         except KeyError:
             if not create: return None
-        project = Project(path)
+        project = Project(path, normalizer=self.normalizer)
         self.projects[path] = project
         return project
         

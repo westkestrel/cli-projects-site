@@ -166,6 +166,20 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.completed, '2026/03/15')
         self.assertEqual(p.status, 'Completed')
 
+    def test_scan_aliased_values(self):
+        content = '''
+        # My Great Project
+        
+        *Commenced: 2026/02/14*
+        *Completed: 15-Mar-2026*
+        *Type: Python*
+        '''
+        n = Normalizer()
+        n.add_alias('Type', 'Python', 'Script')
+        p = Project('/2026/MyProject', normalizer=n)
+        p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
+        self.assertEqual(p.type, 'Script')
+
 
 class TestLibrary(unittest.TestCase):
 
@@ -177,3 +191,17 @@ class TestLibrary(unittest.TestCase):
         p2 = lib.get_project(join(c.root, '2026/MyProject/README.txt'))
         self.assertEqual(p2.abspath, join(c.root, '2026/MyProject'))
     
+    def test_scan_aliased_values(self):
+        content = '''
+        # My Great Project
+        
+        *Commenced: 2026/02/14*
+        *Completed: 15-Mar-2026*
+        *Type: Python*
+        '''
+        lib = Library()
+        lib.normalizer.add_alias('Type', 'Python', 'Script')
+        p = lib.get_project('/2026/MyProject') # project should use library normalizer
+        p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
+        self.assertEqual(p.type, 'Script')
+
