@@ -64,6 +64,9 @@ def main(args=None):
     if len(sources) == 0:
         print('no configuration files found in config/ folder', file=stderr)
         return 1
+    elif not options.silent:
+        preamble = 'NOT ' if options.testing else ''
+        print('%swriting %d json files into %s/ folder' % (preamble, len(sources), 'config'))
     result = 0
     for source in sources:
         try: process(source)
@@ -159,14 +162,14 @@ def process_config_file(path):
     '''
     Reads a config.txt file and writes config.json
     '''
-    if not options.silent: print('reading %s' % path)
+    if options.verbose: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
         data = process_config_content(file, path)
     output_path = splitext(path)[0] + '.json'
-    if options.testing:
-        print('NOT writing %s' % output_path)
-        return
-    if not options.silent: print('writing %s' % output_path)
+    if options.verbose:
+        preamble = 'NOT ' if options.testing else ''
+        print('%swriting %s' % (preamble, output_path))
+    if options.testing: return
     with open(output_path, 'w', encoding="utf-8") as file:
         # note that ensure_ascii=False == "leave emoji as emoji"
         file.write(json.dumps(data, indent=4, ensure_ascii=False))
@@ -192,14 +195,14 @@ def process_values_file(path):
     '''
     Reads a type_values.txt or status_values.txt file and writes the corresponding json file.
     '''
-    if not options.silent: print('reading %s' % path)
+    if options.verbose: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
         data = process_tag_content(file, path)
     output_path = splitext(path)[0] + '.json'
-    if options.testing:
-        print('NOT writing %s' % output_path)
-        return
-    if not options.silent: print('writing %s' % output_path)
+    if options.verbose:
+        preamble = 'NOT ' if options.testing else ''
+        print('%swriting %s' % (preamble, output_path))
+    if options.testing: return
     with open(output_path, 'w', encoding="utf-8") as file:
         # note that ensure_ascii=False == "leave emoji as emoji"
         file.write(json.dumps(data, indent=4, ensure_ascii=False))
