@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from time import localtime, strftime
 from glob import glob
-from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join
+from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import mkdir, walk
 from sys import argv
 from time import localtime, strftime
@@ -105,17 +105,59 @@ class Config:
         
     def make_regex_from_glob(self, text):
         return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
-        
-
 
 config = Config('config/config.txt')
+
+class KnownValueGroup:
+    '''
+    A known value group represents one or more known values which share an icon, and is
+    defined by a single line in a *_values.txt file, e.g.,
+        > Script (aka Python, Perl, Bash), Command-Line Utility
+    defines the group with icon '>' and two values 'Script' and 'Command-Line Utility',
+    as well as three aliases for Script.
+    '''
+    def __init__(self, data):
+        self.icon = data['icon']
+        try: self.names = data['names']
+        except KeyError: self.names = [data['name']]
+        try: self.aliases = data['aliases']
+        except KeyError: self.aliases = dict()
+
+class KnownValues:
+    '''
+    A known values object represents all of the known value groups for a given key.
+    '''
+    def __init__(self, path):
+        name = splitext(basename(path))[0] # e.g., 'type_values'
+        self.key = '_'.join(name.split('_')[1:]) # e.g., 'type'
+        self.aliases = OrderedDict()
+        self.by_icon = OrderedDict()
+        self.groups = list()
+        self.values = set()
+        data = json.load(open(path, encoding='utf-8'))
+        for record in data:
+            group = KnownValueGroup(record)
+            for value in group.names:
+                self.values.add(value)
+            if group.icon not in self.by_icon:
+                self.by_icon[group.icon] = group
+            else:
+                raise ValueError('two groups with the same icon: %s' % group.icon)
+            for key, value in group.aliases.items():
+                self.aliases[key] = value
+            self.groups.append(group)
+            
+        def is_known(self, value):
+            return value in self.values
 
 class Normalizer:
     '''
     Converts keys, values, and date strings to standard form
     '''
     def __init__(self):
-        self.aliases = OrderedDict()
+        self.aliases_by_key = OrderedDict()
+        self.known_values_by_key = OrderedDict()
+        self.found_values_by_key = OrderedDict()
         self.date_fields = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
         self.months = {
             'jan': '01',
@@ -141,9 +183,12 @@ class Normalizer:
         will have the value 'Script'.
         '''
         key = self.key(key)
-        if key not in self.aliases: self.aliases[key] = OrderedDict()
-        key_aliases = self.aliases[key]
+        if key not in self.aliases_by_key: self.aliases_by_key[key] = OrderedDict()
+        key_aliases = self.aliases_by_key[key]
         key_aliases[value] = new_value
+        
+    def set_known_values_for_key(self, known_value_set, key):
+        self.known_values_by_key[key] = set(known_value_set)
         
     def key(self, text):
         '''
@@ -157,13 +202,23 @@ class Normalizer:
         '''
         key = self.key(key)
         try:
-            key_aliases = self.aliases[key]
+            key_aliases = self.aliases_by_key[key]
             text = key_aliases[text]
         except KeyError:
             pass
             
         if key in self.date_fields:
             return self.date(text)
+            
+        try:
+            known_value_set = self.known_values_by_key[key]
+            if text != None and text not in known_value_set and options.verbose:
+                print('**warning: "%s" is not a known value for field "%s"' % (text, key))
+            if key not in self.found_values_by_key: self.found_values_by_key[key] = set()
+            self.found_values_by_key[key].add(text)
+        except KeyError:
+            pass
+            
         return text
         
     def item(self, key, value):
@@ -415,7 +470,24 @@ class Library:
     
     def __init__(self, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
+        self.known_values_by_key = dict()
         self.projects = OrderedDict()
+        
+    def read_known_values_files(self):
+        paths = sorted(glob('config/*_values.json'))
+        if not options.silent: print('reading %d known-values files from %s/ folder' % (len(paths), 'config'))
+        for path in paths:
+            self.read_known_values_file(path)
+            
+    def read_known_values_file(self, path):
+        if options.verbose: print('reading %s' % path)
+        parts = splitext(basename(path))[0].split('_') # e.g., type_values.json => ['type', 'values']
+        key = '_'.join(parts[0:len(parts)-1])
+        known_values = KnownValues(path)
+        self.known_values_by_key[key] = known_values
+        for value, new_value in known_values.aliases.items():
+            self.normalizer.add_alias(key, value, new_value)
+        self.normalizer.set_known_values_for_key(known_values.values, key)
         
     def get_project(self, path, create=True):
         if self.is_readme_path(path): path = dirname(path)
@@ -496,6 +568,7 @@ def main(args=None):
     if len(options.sources) == 0: sources = sorted(glob(expanduser(config.root)))
     else: sources = options.sources
     library = Library()
+    library.read_known_values_files()
     for source in sources:
         source = expanduser(source)
         if isdir(source):
@@ -503,6 +576,12 @@ def main(args=None):
             library.scan_for_readme_files(source)
         else:
             library.scan_readme_file(source)
+    for key, values in sorted(library.normalizer.found_values_by_key.items()):
+        print('**warning: field \'%s\' had unexpected values %s' % (
+            key,
+            ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
+            )
+        )
     library.write_buckets()
     
 if __name__ == '__main__':
