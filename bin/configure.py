@@ -91,9 +91,9 @@ def create_configuration_folder(path):
         root: ROOT
         projects: *19[0-9][0-9]/*, *20[0-9][0-9]/*
     ''')
-    create_configuration_file(join(path, 'types.txt'), '''
-        # List your project types here, then run bin/configure.py
-        # to convert them to a JSON file.
+    create_values_file(join(path, 'type_values.txt'), '''
+        # List your project-type values here, then run bin/configure.py
+        # to convert it to a JSON file.
         #
         # Put project-type descriptions in parenthesis or after a colon
         # (if your description contains a comma you must use parenthesis)
@@ -112,15 +112,15 @@ def create_configuration_folder(path):
         🕸️ Website
         🔧 Admin, Sysadmin, Webadmin
     ''')
-    create_configuration_file(join(path, 'statuses.txt'), '''
-        # List your project statuses here, then run bin/configure.py
-        # to convert them to a JSON file.
+    create_values_file(join(path, 'status_values.txt'), '''
+        # List your project-status values here, then run bin/configure.py
+        # to convert it to a JSON file.
         #
         # Put project-status descriptions in parenthesis or after a colon
         # (if your description contains a comma you must use parenthesis)
         #
         # Comma-separated items will share an icon, but retain their names
-        # aka items will be renamed (i.e, "Photos" projects become "Photography")
+        # aka items will be renamed (i.e, "Broken" projects become "Unstable")
         
         ✏️ Sketch: Initial sketches for an idea that never really took off
         ▶️ Active: Under active development
@@ -141,14 +141,17 @@ def create_configuration_file(path, content):
         content = content.replace('ROOT', getcwd().replace(home, '~'))
         file.write('\n'.join(map(str.strip, content.strip().split('\n'))))
         file.write('\n')
+        
+def create_values_file(path, content):
+    create_configuration_file(path, content)
     
 def process(path):
     if not path.endswith('.txt'):
         raise ConfigError('Not a text file: %s' % path, None, None, None)
     if basename(path) == 'config.txt':
         process_config_file(path)
-    elif basename(path) in set(['statuses.txt', 'types.txt']):
-        process_tag_file(path)
+    elif basename(path).endswith('_values.txt'):
+        process_values_file(path)
     else:
         raise ConfigError('unrecognized configuration file', path, None, None)
         
@@ -185,9 +188,9 @@ def process_config_content(lines, filename=None):
         config[key] = value
     return config
     
-def process_tag_file(path):
+def process_values_file(path):
     '''
-    Reads a types.txt or statuses.txt file and writes the corresponding json file.
+    Reads a type_values.txt or status_values.txt file and writes the corresponding json file.
     '''
     if not options.silent: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
@@ -203,9 +206,9 @@ def process_tag_file(path):
 
 def process_tag_content(lines, path=None):
     '''
-    Scans lines of the "project types" format
+    Scans lines of the "project type_values" format
         📝 Notes (including spreadsheets), Docs (aka Documentation)
-    or the "project statuses" format
+    or the "project status_values" format
         🪦 Obsolete: Superceded by a later project
     and returns an array of dictionaries:
         [{
