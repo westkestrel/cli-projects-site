@@ -69,6 +69,8 @@ class Config:
         }
         if path != None:
             self.read(path)
+        if self.skip == None: raise ValueError('config is missing "skip" field')
+        self.values['skip_regex'] = self.make_regex(self.skip)
             
     def read(self, path):
         if path.endswith('.json'):
@@ -91,6 +93,20 @@ class Config:
     
     def __getitem__(self, key):
         return self.values[key]
+        
+    def __setitem__(self, key, value):
+        self.values[key] = value
+        if key == 'skip':
+            self.values['skip_regex'] = self.make_regex(value)
+        
+    def make_regex(self, glob_list_string):
+        glob_list = list(map(self.make_regex_from_glob, re.split(r', *', glob_list_string)))
+        return '^(?:%s)$' % '|'.join(glob_list)
+        
+    def make_regex_from_glob(self, text):
+        return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
+        
+
 
 config = Config('config/config.txt')
 
@@ -139,6 +155,8 @@ class Normalizer:
         Accepts date strings in a variety of formats (and integers and floats representing
         seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
         '''
+        if text == None:
+            return None
         if type(text) == int or type(text) == float:
             return strftime('%Y/%m/%d', localtime(text))
             
@@ -175,8 +193,10 @@ class Folder:
         data['relpath'] = self.relpath
         data['commenced'] = self.normalizer.date(self.get_ctime(self.abspath))
         newest, timestamp = self.get_newest_file(self.abspath)
+        if newest != None: newest = newest[len(self.abspath) + 1: ]
+        if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
         data['completed'] = self.normalizer.date(timestamp)
-        data['newest_file'] = newest[len(self.abspath) + 1: ]
+        data['newest_file'] = newest
         data['type'] = None
         data['status'] = None
         if data['name'].startswith('www.'): data['type'] = 'Website'
@@ -189,42 +209,43 @@ class Folder:
         '''
         return exists(path)
         
-    def get_ctime(self, path):
+    def get_ctime(self, path=None):
         '''
         Returns the timestamp (seconds since epoch) of the creation date of the file
         or folder at the given path.  Note that you *cannot* simply use getctime(), as that
         always returns "now" for a directory on MacOS.
         '''
-        command = ['stat', '-f', '%B', path]
+        command = ['stat', '-f', '%B', path if path != None else self.abspath]
         output = subprocess.run(command, capture_output=True, text=True)
         timestamp = output.stdout
         return int(timestamp)
         
-    def get_mtime(self, path):
+    def get_mtime(self, path=None):
         '''
         Returns the timestamp (seconds since epoch) of the modification date of the file
         or folder at the given path.
         '''
-        try: return getmtime(path)
+        try: return getmtime(path if path != None else self.abspath)
         except FileNotFoundError: return None
         
-    def get_newest_file(self, path):
+    def get_newest_file(self, path=None):
         '''
         Returns the path nd timestamp of the newest file within the given folder.
         '''
-        newest = path
-        timestamp = self.get_mtime(path)
-        for root, dirs, files in self.walk(path):
-            for file in files:
+        newest = None
+        timestamp = None
+        for root, dirs, files in self.walk(path if path != None else self.abspath):
+            dirs[0:len(dirs)] = sorted(filter(lambda d: not re.match(config.skip_regex, d), dirs))
+            for file in sorted(filter(lambda f: not re.match(config.skip_regex, f), files)):
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
-                if subtime != None and subtime > timestamp:
+                if  subtime != None and (timestamp == None or subtime > timestamp):
                     newest = subpath
                     timestamp = subtime
         return newest, timestamp
         
-    def walk(self, path):
-        return walk(path)
+    def walk(self, path=None):
+        return walk(path if path != None else self.abspath)
 
 class TestableFolder(Folder):
     '''
@@ -387,13 +408,6 @@ class Library:
     def is_readme_path(self, path):
         return 'readme' in basename(path).lower()
         
-    def make_regex(self, glob_list_string):
-        glob_list = list(map(self.make_regex_from_glob, re.split(r', *', glob_list_string)))
-        return '^(?:%s)$' % '|'.join(glob_list)
-        
-    def make_regex_from_glob(self, text):
-        return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
-        
     def scan_for_readme_files(self, path):
         if config.projects == None:
             self.walk_for_readme_files(path)
@@ -403,13 +417,12 @@ class Library:
                 self.walk_for_readme_files(subpath, deep=False)
             
     def walk_for_readme_files(self, path, deep=True):
-        skip_regex = self.make_regex(config.skip)
         for root, dirs, files in walk(path):
             if deep: dirs[0:len(dirs)] = sorted(dirs)
             else: dirs[0:len(dirs)] = []
             files[0:len(files)] = sorted(files)
             for i in reversed(range(0, len(dirs))):
-                if re.match(skip_regex, dirs[i]):
+                if re.match(config.skip_regex, dirs[i]):
                     dirs[i:i+1] = []
             files = list(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             if len(files) == 0:

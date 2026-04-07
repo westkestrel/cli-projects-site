@@ -2,6 +2,18 @@ import unittest
 from os.path import join
 from scan import config, Config, Normalizer, Folder, TestableFolder, Project, Library
 
+class TestConfig(unittest.TestCase):
+
+    def test_regex(self):
+        c = Config(None)
+        self.assertEqual(c.make_regex('.*, _*, node_modules'), '^(?:[.].*|_.*|node_modules)$')
+        
+    def test_skip(self):
+        c = Config(None)
+        self.assertEqual(c.skip_regex, r'^(?:[.].*|_.*|tmp|node_modules|PackageCache|wp-content)$')
+        c['skip'] = '.*, tmp'
+        self.assertEqual(c.skip_regex, r'^(?:[.].*|tmp)$')
+
 class TestNormalizer(unittest.TestCase):
 
     def test_date(self):
@@ -51,7 +63,8 @@ class TestFolder(unittest.TestCase):
             '2026/MyProject/README.md': [day * 6, day * 10],
         })
         d = f.scan_for_project_metadata()
-        self.assertEqual(d['relpath'], '2026/MyProject') # relative path
+        self.assertEqual(d['abspath'], join(config.root, '2026/MyProject'))
+        self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
         self.assertEqual(d['completed'], '1970/01/10')
@@ -135,10 +148,6 @@ class TestProject(unittest.TestCase):
 
 
 class TestLibrary(unittest.TestCase):
-
-    def test_regex(self):
-        lib = Library()
-        self.assertEqual(lib.make_regex('.*, _*, node_modules'), '^(?:[.].*|_.*|node_modules)$')
 
     def test_get_project(self):
         lib = Library()
