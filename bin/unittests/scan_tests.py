@@ -51,11 +51,11 @@ class TestFolder(unittest.TestCase):
             '2026/MyProject/README.md': [day * 6, day * 10],
         })
         d = f.scan_for_project_metadata()
-        self.assertEqual(d['path'], '2026/MyProject') # relative path
+        self.assertEqual(d['relpath'], '2026/MyProject') # relative path
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
         self.assertEqual(d['completed'], '1970/01/10')
-        self.assertEqual(d['newest'], 'README.md')
+        self.assertEqual(d['newest_file'], 'README.md')
         self.assertEqual(d['type'], None)
         self.assertEqual(d['status'], None)
         
@@ -80,16 +80,43 @@ class TestFolder(unittest.TestCase):
 
 class TestProject(unittest.TestCase):
 
+    def test_init_in_project_root(self):
+        r = config.root
+        path = join(config.root, '2026/MyProject')
+        p = Project(path)
+        self.assertEqual(p.abspath, path)
+        self.assertEqual(p.relpath, '2026/MyProject')
+        self.assertEqual(p.get_bucket_name(), '2026')
+
+    def test_init_outside_project_root(self):
+        p = Project('/2026/MyProject')
+        self.assertEqual(p.abspath, '/2026/MyProject')
+        self.assertEqual(p.relpath, None)
+        self.assertEqual(p.get_bucket_name(), '2026')
+
     def test_scan(self):
-        p = Project('/foo/bar')
+        p = Project('/2026/MyProject')
+        self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         p.scan_readme_content('''
         *Commenced: 2026/02/14*
         *Completed: 15-Mar-2026*
         '''.split('\n'))
-        self.assertEqual(p.path, '/foo/bar')
-        self.assertEqual(p.name, None)
+        self.assertEqual(p.abspath, '/2026/MyProject')
+        self.assertEqual(p.name, 'MyProject')
         self.assertEqual(p.commenced, '2026/02/14')
         self.assertEqual(p.completed, '2026/03/15')
+
+    def test_scan_without_apply(self):
+        p = Project('/2026/MyProject')
+        self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
+        p.scan_readme_content('''
+        *Commenced: 2026/02/14*
+        *Completed: 15-Mar-2026*
+        '''.split('\n'), apply=False)
+        self.assertEqual(p.abspath, '/2026/MyProject')
+        self.assertEqual(p.name, 'MyProject')
+        self.assertEqual(p.commenced, None)
+        self.assertEqual(p.completed, None)
 
     def test_scan_inferred_values(self):
         content = '''
@@ -98,9 +125,9 @@ class TestProject(unittest.TestCase):
         *Commenced: 2026/02/14*
         *Completed: 15-Mar-2026*
         '''
-        p = Project('/foo/bar')
+        p = Project('/2026/MyProject')
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
-        self.assertEqual(p.path, '/foo/bar')
+        self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'My Great Project')
         self.assertEqual(p.commenced, '2026/02/14')
         self.assertEqual(p.completed, '2026/03/15')
@@ -117,7 +144,7 @@ class TestLibrary(unittest.TestCase):
         lib = Library()
         c = Config(None)
         p1 = lib.get_project(join(c.root, '2026/MyProject'))
-        self.assertEqual(p1.path, join(c.root, '2026/MyProject'))
+        self.assertEqual(p1.abspath, join(c.root, '2026/MyProject'))
         p2 = lib.get_project(join(c.root, '2026/MyProject/README.txt'))
-        self.assertEqual(p2.path, join(c.root, '2026/MyProject'))
+        self.assertEqual(p2.abspath, join(c.root, '2026/MyProject'))
     

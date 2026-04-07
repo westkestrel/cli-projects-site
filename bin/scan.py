@@ -8,12 +8,13 @@ from argparse import ArgumentParser
 from collections import OrderedDict
 from time import localtime, strftime
 from glob import glob
-from os.path import basename, dirname, exists, expanduser, isdir, join
+from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join
 from os import mkdir, walk
 from sys import argv
 from time import localtime, strftime
 import json
 import re
+import subprocess
 
 from configure import main as configure_main
     
@@ -170,11 +171,12 @@ class Folder:
         root = join(config.root,) # add trailing slash
         files = self.walk
         data['name'] = basename(self.abspath)
-        data['path'] = self.relpath
+        data['abspath'] = self.abspath
+        data['relpath'] = self.relpath
         data['commenced'] = self.normalizer.date(self.get_ctime(self.abspath))
         newest, timestamp = self.get_newest_file(self.abspath)
-        data['newest'] = newest[len(self.abspath) + 1: ]
         data['completed'] = self.normalizer.date(timestamp)
+        data['newest_file'] = newest[len(self.abspath) + 1: ]
         data['type'] = None
         data['status'] = None
         if data['name'].startswith('www.'): data['type'] = 'Website'
@@ -203,7 +205,8 @@ class Folder:
         Returns the timestamp (seconds since epoch) of the modification date of the file
         or folder at the given path.
         '''
-        return getmtime(path)
+        try: return getmtime(path)
+        except FileNotFoundError: return None
         
     def get_newest_file(self, path):
         '''
@@ -215,7 +218,7 @@ class Folder:
             for file in files:
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
-                if subtime > timestamp:
+                if subtime != None and subtime > timestamp:
                     newest = subpath
                     timestamp = subtime
         return newest, timestamp
@@ -277,29 +280,51 @@ class Project:
     def __init__(self, path, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
         self.metadata = OrderedDict()
-        self['path'] = path
+        root = join(config.root, '') # add trailing slash
+        self['name'] = basename(path)
+        self['abspath'] = path
+        self['relpath'] = path[len(root):] if path.startswith(root) else None
         
     def get_bucket_name(self):
-        parent_folder = dirname(self.path)
-        root = config.root
-        if not parent_folder.startswith(root):
-            raise ValueError('%s is not a subdirectory of %s' % (parent_folder, root))
-        return parent_folder[len(root)+1:]
+        return basename(dirname(self.abspath))
         
-    def scan_folder_metadata(self, path):
+    def scan_folder_metadata(self, path, apply=True):
+        '''
+        Extracts project name, date, etc. from the filesystem, optionally applies it
+        to the project metadata, and returns it.
+        
+        Note that even if apply==True, the returned data is what was just extracted,
+        not the result of merging.
+        '''
         data = Folder(path).scan_for_project_metadata()
+        if apply: self.apply(data)
         return data
         
-    def scan_readme_file(self, path):
+    def scan_readme_file(self, path, apply=True):
+        '''
+        Extracts project name, date, etc. from the given README file, optionally applies
+        it to the project metadata, and returns it.
+        
+        Note that even if apply==True, the returned data is what was just extracted,
+        not the result of merging.
+        '''
         if not options.silent: print('reading %s' % path)
         try:
             with open(path, encoding='utf-8') as file:
-                self.scan_readme_content(file)
+                return self.scan_readme_content(file, apply)
         except UnicodeDecodeError:
             with open(path, encoding='macroman') as file:
-                self.scan_readme_content(file)
+                return self.scan_readme_content(file, apply)
     
-    def scan_readme_content(self, content):
+    def scan_readme_content(self, content, apply=True):
+        '''
+        Extracts project name, date, etc. from the given README content, optionally applies
+        it to the project metadata, and returns it.
+        
+        Note that even if apply==True, the returned data is what was just extracted,
+        not the result of merging.
+        '''
+        data = OrderedDict()
         for i, line in enumerate(content, start=1):
             if i == 1 and line.startswith('# '):
                 self['name'] = line[1:].strip()
@@ -309,7 +334,18 @@ class Project:
                 key, value = match.group(1, 2)
                 nkey, nvalue = self.normalizer.item(key, value)
                 if nkey in self.STATUS_KEYS: self['status'] = key
-                self[nkey] = nvalue
+                data[nkey] = nvalue
+        if apply: self.apply(data)
+        return data
+        
+    def apply(self, *args):
+        '''
+        Takes one or more data dictionaries and applies them to the
+        project metadata.
+        '''
+        for data in args:
+            for key, value in data.items():
+                self[key] = value
                 
     def __getattr__(self, key):
         try:
@@ -385,7 +421,10 @@ class Library:
     
     def scan_readme_file(self, path):
         project = self.get_project(path, create=True)
-        project.scan_readme_file(path)
+        project.apply(
+            project.scan_folder_metadata(dirname(path)),
+            project.scan_readme_file(path)
+        )
         
     def write_buckets(self):
         data_dir = 'data'
