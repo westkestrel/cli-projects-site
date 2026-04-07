@@ -110,26 +110,46 @@ class TestProject(unittest.TestCase):
     def test_scan(self):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
-        p.scan_readme_content('''
+        data = p.scan_readme_content('''
         *Commenced: 2026/02/14*
         *Completed: 15-Mar-2026*
+        *Type: Video*
+        *Status: Abandoned*
         '''.split('\n'))
+        self.assertEqual(data, {
+            'commenced': '2026/02/14',
+            'completed': '2026/03/15',
+            'type': 'Video',
+            'status': 'Abandoned',
+        })
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'MyProject')
         self.assertEqual(p.commenced, '2026/02/14')
         self.assertEqual(p.completed, '2026/03/15')
+        self.assertEqual(p.type, 'Video')
+        self.assertEqual(p.status, 'Abandoned')
 
     def test_scan_without_apply(self):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
-        p.scan_readme_content('''
+        data = p.scan_readme_content('''
         *Commenced: 2026/02/14*
         *Completed: 15-Mar-2026*
+        *Type: Video*
+        *Status: Abandoned*
         '''.split('\n'), apply=False)
+        self.assertEqual(data, {
+            'commenced': '2026/02/14',
+            'completed': '2026/03/15',
+            'type': 'Video',
+            'status': 'Abandoned',
+        })
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'MyProject')
         self.assertEqual(p.commenced, None)
         self.assertEqual(p.completed, None)
+        self.assertEqual(p.type, None)
+        self.assertEqual(p.status, None)
 
     def test_scan_inferred_values(self):
         content = '''

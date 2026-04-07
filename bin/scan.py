@@ -354,7 +354,7 @@ class Project:
             if match:
                 key, value = match.group(1, 2)
                 nkey, nvalue = self.normalizer.item(key, value)
-                if nkey in self.STATUS_KEYS: self['status'] = key
+                if nkey in self.STATUS_KEYS: data['status'] = key
                 data[nkey] = nvalue
         if apply: self.apply(data)
         return data
