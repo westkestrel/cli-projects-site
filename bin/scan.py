@@ -424,7 +424,7 @@ class Library:
             for i in reversed(range(0, len(dirs))):
                 if re.match(config.skip_regex, dirs[i]):
                     dirs[i:i+1] = []
-            files = list(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
+            files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             if len(files) == 0:
                 continue
             elif len(files) > 1:
