@@ -405,7 +405,7 @@ class Project:
         Note that even if apply==True, the returned data is what was just extracted,
         not the result of merging.
         '''
-        if not options.silent: print('reading %s' % path)
+        if options.verbose: print('reading %s' % path)
         try:
             with open(path, encoding='utf-8') as file:
                 return self.scan_readme_content(file, apply)
@@ -520,6 +520,7 @@ class Library:
                     dirs[i:i+1] = []
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             if len(files) == 0:
+                if not options.silent: print('**warning: no README file found in %s' % root)
                 continue
             elif len(files) > 1:
                 raise FileError('found more than one README file:\n%s' % '\n'.join(map(lambda f: join(root, f), files)))
@@ -544,6 +545,7 @@ class Library:
             bucket_name = project.get_bucket_name()
             try: buckets[bucket_name].append(project)
             except KeyError: buckets[bucket_name] = [project]
+        if not options.silent: print('writing %d json files into %s/ folder' % (len(buckets), data_dir))
         for bucket_name in sorted(buckets.keys()):
             self.write_bucket(bucket_name, buckets[bucket_name])
             
@@ -553,7 +555,7 @@ class Library:
         if options.testing:
             print('NOT writing %s' % path)
             return
-        print('writing %s' % path)
+        if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4, ensure_ascii=False)
 
@@ -569,10 +571,11 @@ def main(args=None):
     else: sources = options.sources
     library = Library()
     library.read_known_values_files()
+    if not options.silent: print('scanning project folders...')
     for source in sources:
         source = expanduser(source)
         if isdir(source):
-            if not options.silent: print('scanning %s/' % source)
+            if options.verbose: print('scanning %s/' % source)
             library.scan_for_readme_files(source)
         else:
             library.scan_readme_file(source)
