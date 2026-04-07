@@ -564,9 +564,14 @@ def main(args=None):
     global config
     config = Config('config/config.txt')
     options = make_parser().parse_args(args)
+    
     if not options.skip_configure:
-        configure_main()
+        if not options.silent: print('running bin/config.py (pass -k/--skip-configure to bypass)')
+        result = configure_main()
+        if result != 0: return result
+        if not options.silent: print('bin/config.py completed successfully\n')
         config = Config('config/config.txt')
+        
     if len(options.sources) == 0: sources = sorted(glob(expanduser(config.root)))
     else: sources = options.sources
     library = Library()
