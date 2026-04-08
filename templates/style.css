@@ -1,0 +1,124 @@
+/* general styles */
+
+body {
+    font-family: Verdana, Arial, Helvetica, sans-serif;
+    width: 120ex;
+    margin: 1em auto;
+}
+body, td, th {
+    font-size: 10pt;
+}
+h2 {
+    text-align: leading;
+}
+h3, th {
+    font-size: 12pt;
+}
+h3 {
+    margin-block-start: 1em;
+    margin-block-end: 0.5em;
+}
+p {
+    margin-block-end: 0.5em;
+}
+p + ul {
+    margin-block-start: 0.5em;
+}
+
+/* styles related to the row-visibility controls */
+
+p.instructions {
+    font-style: italic;
+    font-size: smaller;
+    color: gray;
+}
+
+section.filter-controls {
+    display: flex;
+    flex-direction: row;
+}
+section.filter-controls label {
+    display: inline-block;
+    padding-left: 2em;
+}
+section.filter-controls label:before {
+    margin-left: -2em;
+}
+
+li {
+    list-style-type: none;
+}
+
+/* styles related to the project table */
+
+table {
+    width: 100%;
+    margin: auto;
+    border-collapse: collapse;
+}
+tr {
+    min-height: 2em;
+}
+tr.project:hover {
+    background: wheat;
+}
+th {
+    text-align: left;
+}
+tr.bucket th {
+    padding-top: 0.5em;
+}
+td {
+    vertical-align: text-top;
+    padding-left: 0.5ex;
+    padding-right: 0.5ex;
+}
+
+td.date {
+    white-space: nowrap;
+}
+
+input[type=checkbox] {
+    display: none;
+}
+input:not(:checked) + label {
+    opacity: 0.25;
+}
+
+ul.filterbox-controls {
+    padding-left: 1.5em;
+}
+ul.filterbox-controls li {
+    min-height: 2em;
+}
+ul.filterbox-controls li input + label:before {
+    display: inline-block;
+    width: 1.5em;
+    height: 1.5em;
+    margin-right: 0.5em;
+}
+
+input.new + label, .new {
+    color: darkgreen;
+}
+input.missing + label, .missing {
+    color: #766;
+}
+
+.error {
+    color: #c00;
+}
+
+.copyright {
+    font-size: smaller;
+    text-align: right;
+}
+
+.focus-new-true tr,
+.focus-missing-true tr {
+    display: none;
+}
+.focus-new-true tr.new,
+.focus-missing-true tr.missing {
+    display: table-row;
+}

@@ -24,6 +24,16 @@ bin/scan.py
 Reads the README files in your **projects** folder tree, updates the .json files in the **data** folder.
 By default, this also runs the configure script. Pass -k/--skip-preflight to bypass this.
 
+```
+bin/build.py
+```
+
+Reads the .json files in the **data** folder, writes a **library.json** file, then uses that file and the **templates** folder to populate the **website** folder.
+By default, this also runs the configure and scan scripts. Pass -k/--skip-preflight to bypass this.
+
+Note that the build process makes use of the [Jinja](https://jinja.palletsprojects.com) command-line interface.
+If you have not already done so, you will need to run `brew install jinja-cli` before building your site.
+
 ## Configuration
 
 Your configuration file takes the form

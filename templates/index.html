@@ -1,0 +1,22 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8">
+<title>{{ config.title }}</title>
+<link rel="stylesheet" href="style.css" />
+<script src="filterbox.js"></script>
+</head>
+<body>
+<h1>{{ config.title }}</h1>
+
+<p class="instructions">
+    Click the <strong>type</strong>, <strong>status</strong>, or <strong>meta</strong> lines to toggle project visibility.
+    Command-click to toggle non-matching projects.
+</p>
+
+{% include 'controls.html' %}
+{% include 'projects.html' %}
+
+<p class="copyright">This page and all projects it refers to are &copy; {{ year }} {{ config.author }}.</p>
+
+</body>
+</html>

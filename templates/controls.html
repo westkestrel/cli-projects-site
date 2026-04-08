@@ -1,0 +1,25 @@
+<section class="filter-controls">
+    {% for field_name in ['type', 'status'] %}
+    <div>
+        <h2>Project {{ field_name | capitalize }}</h2>
+        <ul class="filterbox-controls filter-{{ field_name }}">
+            {% for group in iconic_fields[field_name] %}
+            <li>
+                <input type="checkbox" }}"/>
+                <label>
+                    <span class="icon">{{ group.icon }}</span>
+                    <span class="text">{{ group.name }}{{ group.names | join(', ') }}</span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        {% if field_name == 'status' %}
+        <h2>Meta</h2>
+        <ul class="filterbox-controls filter-meta">
+            <li><input type="checkbox"/> <label>New: projects that have not been documented yet</label></li>
+            <li><input type="checkbox"/> <label>Missing: projects that have been archived and deleted from this disk</label></li>
+        </ul>
+        {% endif %}
+    </div>
+    {% endfor %}
+</section>
