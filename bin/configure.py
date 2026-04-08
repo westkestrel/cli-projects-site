@@ -8,7 +8,7 @@ from collections import OrderedDict
 from os.path import basename, exists, expanduser, join, splitext
 from os import getcwd, mkdir
 from glob import glob
-from sys import argv, stderr, stdin, stdout
+from sys import argv, exit, stderr, stdin, stdout
 import json
 import re
 
@@ -52,8 +52,18 @@ class ConfigError(Exception):
             self.message
         )
         return text.replace(': None', '').replace('\nNone', '')
+        
+def preflight(options):
+    '''
+    The configure script has no preflight requirements, so this
+    function does nothing.
+    '''
+    return 0
 
 def main(args=None):
+    '''
+    Reads text files and writes json files.
+    '''
     global options
     options = make_parser().parse_args(args)
     if len(options.sources) == 0: sources = sorted(glob('config/*.txt'))
@@ -296,4 +306,8 @@ def process_tag_content(lines, path=None):
     return tags
     
 if __name__ == '__main__':
-    main(argv[1:])
+    options = make_parser().parse_args()
+    status = preflight(options)
+    if status != 0: exit(status)
+    exit(main(argv[1:]))
+

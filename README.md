@@ -22,6 +22,7 @@ bin/scan.py
 ```
 
 Reads the README files in your **projects** folder tree, updates the .json files in the **data** folder.
+By default, this also runs the configure script. Pass -k/--skip-preflight to bypass this.
 
 ## Configuration
 

@@ -10,20 +10,20 @@ from time import localtime, strftime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import mkdir, walk
-from sys import argv
+from sys import argv, exit
 from time import localtime, strftime
 import json
 import re
 import subprocess
 
-from configure import main as configure_main
+from configure import preflight as preflight_configure, main as main_configure
     
 config = None
 options = None
 def make_parser():
     parser = ArgumentParser(description=__doc__)
-    parser.add_argument('-k', '--skip-configure',
-        dest='skip_configure', action='store_const',
+    parser.add_argument('-k', '--skip-preflight',
+        dest='skip_preflight', action='store_const',
         const=True,
         default=False,
         help='do *not* first invoke configure.py; just do the scan')
@@ -558,6 +558,19 @@ class Library:
         if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4, ensure_ascii=False)
+            
+def preflight(options):
+    '''
+    Runs the configure script to ensure that the config/*.json files
+    are up to date.
+    '''
+    if not options.skip_preflight:
+        if not options.silent: print('running bin/config.py (pass -k/--skip-preflight to bypass)')
+        status = main_configure()
+        if status != 0: return status
+        if not options.silent: print('bin/config.py completed successfully\n')
+    return 0
+        
 
 def main(args=None):
     global options
@@ -565,13 +578,6 @@ def main(args=None):
     config = Config('config/config.txt')
     options = make_parser().parse_args(args)
     
-    if not options.skip_configure:
-        if not options.silent: print('running bin/config.py (pass -k/--skip-configure to bypass)')
-        result = configure_main()
-        if result != 0: return result
-        if not options.silent: print('bin/config.py completed successfully\n')
-        config = Config('config/config.txt')
-        
     if len(options.sources) == 0: sources = sorted(glob(expanduser(config.root)))
     else: sources = options.sources
     library = Library()
@@ -591,6 +597,11 @@ def main(args=None):
             )
         )
     library.write_buckets()
+    return 0
     
 if __name__ == '__main__':
-    main(argv[1:])
+    options = make_parser().parse_args()
+    status = preflight(options)
+    if status != 0: exit(status)
+    result = main(argv[1:])
+    exit(result)
