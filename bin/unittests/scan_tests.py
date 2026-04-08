@@ -48,22 +48,22 @@ class TestNormalizer(unittest.TestCase):
 class TestFolder(unittest.TestCase):
 
     def test_init(self):
-        self.assertNotEqual(config.root, '')
-        path = join(config.root, '2026/MyProject')
+        self.assertNotEqual(config.projects_root_dir, '')
+        path = join(config.projects_root_dir, '2026/MyProject')
         f = Folder(path)
-        self.assertEqual(f.rootpath, config.root)
+        self.assertEqual(f.rootpath, config.projects_root_dir)
         self.assertEqual(f.abspath, path)
         self.assertEqual(f.relpath, '2026/MyProject')
         
     def test_scan(self):
-        path = join(config.root, '2026/MyProject')
+        path = join(config.projects_root_dir, '2026/MyProject')
         day = 60*60*24
         f = TestableFolder(path, {
             '2026/MyProject': [day * 5, day * 5],
             '2026/MyProject/README.md': [day * 6, day * 10],
         })
         d = f.scan_for_project_metadata()
-        self.assertEqual(d['abspath'], join(config.root, '2026/MyProject'))
+        self.assertEqual(d['abspath'], join(config.projects_root_dir, '2026/MyProject'))
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
@@ -73,7 +73,7 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['status'], None)
         
     def test_scan_website(self):
-        path = join(config.root, '2026/www.MyProject.com')
+        path = join(config.projects_root_dir, '2026/www.MyProject.com')
         f = TestableFolder(path, {
             '2026/www.MyProject.com': [0, 0],
             '2026/www.MyProject.com/README.md': [0, 0],
@@ -82,7 +82,7 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['type'], 'Website')
         
     def test_scan_react_app(self):
-        path = join(config.root, '2026/MyProject')
+        path = join(config.projects_root_dir, '2026/MyProject')
         f = TestableFolder(path, {
             '2026/MyProject': [0, 0],
             '2026/MyProject/README.md': [0, 0],
@@ -94,8 +94,8 @@ class TestFolder(unittest.TestCase):
 class TestProject(unittest.TestCase):
 
     def test_init_in_project_root(self):
-        r = config.root
-        path = join(config.root, '2026/MyProject')
+        r = config.projects_root_dir
+        path = join(config.projects_root_dir, '2026/MyProject')
         p = Project(path)
         self.assertEqual(p.abspath, path)
         self.assertEqual(p.relpath, '2026/MyProject')

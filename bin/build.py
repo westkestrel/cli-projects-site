@@ -7,7 +7,7 @@ describes your projects.
 from argparse import ArgumentParser
 from collections import OrderedDict
 from glob import glob
-from os.path import basename, exists, join
+from os.path import basename, dirname, exists, join
 from os import mkdir
 from sys import argv, exit, stderr
 from time import localtime, strftime, strptime
@@ -17,6 +17,8 @@ import subprocess
 
 from configure import preflight as preflight_configure, main as main_configure
 from scan import Config, preflight as preflight_scan, main as main_scan
+
+CONFIG_FILE_PATH = join('config', 'config.json')
 
 options = None
 def make_parser():
@@ -36,6 +38,11 @@ def make_parser():
         const=True,
         default=False,
         help='produce more output')
+    parser.add_argument('-g', '--debug',
+        dest='debug', action='store_const',
+        const=True,
+        default=False,
+        help='output the jinja2 commands')
     parser.add_argument('-t', '--test',
         dest='testing', action='store_const',
         const=True,
@@ -55,16 +62,23 @@ class Library:
             self.read_all()
         
     def read_all(self):
-        config_dir = 'config'
-        data_dir = 'data'
-        self.read_config(join(config_dir, 'config.json'))
+        self.read_config(CONFIG_FILE_PATH)
+        
+        config_dir = dirname(CONFIG_FILE_PATH)
+        data_dir = config.data_dir
         for path in sorted(glob(join(config_dir, '*_values.json'))):
             self.read_iconic_fields(path)
-        for path in sorted(glob(join(data_dir, '*.json'))):
-            if basename(path) == 'library.json': continue
+            
+        bucket_files = sorted(filter(lambda d: basename(d) != 'library.json', glob(join(data_dir, '*.json'))))
+        if len(bucket_files) == 0:
+            print('**error: no data files found in %s' % data_dir, file=stderr)
+        for path in bucket_files:
             self.read_bucket(path)
             
     def read_config(self, path, content=None):
+        '''
+        Load the config JSON file and put it into the data dictionary.
+        '''
         if options.verbose: print('reading %s' % path)
         with open(path, encoding='utf-8') as file:
             self.process_config(file)
@@ -74,6 +88,9 @@ class Library:
         self.root['config'] = data
         
     def read_iconic_fields(self, path):
+        '''
+        Load the given known-field-values JSON file and put it into the data dictionary.
+        '''
         if options.verbose: print('reading %s' % path)
         field_name = basename(path).replace('_values.json', '')
         with open(path, encoding='utf-8') as file:
@@ -96,6 +113,9 @@ class Library:
         self.root['icons'][field_name] = icons
         
     def read_bucket(self, path):
+        '''
+        Load the given project-array JSON file and put it into the data dictionary.
+        '''
         if options.verbose: print('reading %s' % path)
         bucket_name = basename(path).replace('.json', '')
         with open(path, encoding='utf-8') as file:
@@ -128,9 +148,11 @@ class Builder:
         self.failures = 0
         
     def build_all(self):
-        template_dir = 'templates'
-        website_dir = 'website'
+        template_dir = config.template_dir
+        website_dir = config.website_dir
         templates = sorted(glob(join(template_dir, '*')))
+        if len(templates) == 0:
+            print('**error: no template files found in %s' % template_dir, file=stderr)
         for template in templates:
             self.build(template, template.replace(template_dir, website_dir))
         return len(templates)
@@ -139,8 +161,15 @@ class Builder:
         if template_path == output_path:
             raise ValueError('template and output path are both "%s"' % template_path)
             
-        data_path = 'data/library.json'
-        command = ['jinja2', template_path, data_path, '-o', output_path]
+        website_dir = dirname(output_path)
+        if not exists(website_dir) and not options.testing:
+            if options.verbose: print('mkdir %s' % website_dir)
+            mkdir(website_dir)
+            
+        data_path = join(config.data_dir, 'library.json')
+        command = ['jinja2', template_path, data_path]
+        if options.debug: print(' '.join(command))
+        
         output = subprocess.run(command, capture_output=True, text=True)
         if output.returncode != 0: self.failures = self.failures + 1
         if options.verbose:
@@ -148,8 +177,8 @@ class Builder:
             else: print('writing %s' % output_path)
         stderr.write(output.stderr)
         if options.testing: return
-#         with open(output_path, 'w', encoding='utf-8') as file:
-#             file.write(output.stdout)
+        with open(output_path, 'w', encoding='utf-8') as file:
+            file.write(output.stdout)
     
 def preflight(options):
     if not options.skip_preflight:
@@ -162,14 +191,14 @@ def preflight(options):
 def main(args=None):
     global options
     global config
-    config = Config('config/config.json')
+    config = Config(CONFIG_FILE_PATH)
     options = make_parser().parse_args(args)
     lib = Library()
     lib.read_all()
-    lib.write('data/library.json')
+    lib.write(join(config.data_dir, 'library.json'))
     builder = Builder()
     count = builder.build_all()
-    if not options.silent: print('updated %d files in %s' % (count, 'website'))
+    if not options.silent: print('updated %d files in %s' % (count, config.website_dir))
     
 if __name__ == '__main__':
     options = make_parser().parse_args()

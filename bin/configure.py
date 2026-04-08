@@ -100,9 +100,33 @@ def create_configuration_folder(path):
         # Edit this configuration text file, then run bin/configure.py
         # to convert it to a JSON file.
         
-        title: My Recent Projects
-        root: ROOT
+        
+        # The folder where you keep your projects
+        #projects_root_dir: CWD
+        projects_root_dir: ~/Projects
+        
+        # A comma-separated list of glob patterns that match
+        # project folders in your project-root folder
         projects: *19[0-9][0-9]/*, *20[0-9][0-9]/*
+        
+        # a comma-separated list of glob patterns to skip when scanning project folders
+        skip: _*, .*, node_modules, tmp
+        
+        
+        # A data folder where intermediate JSON files will be stored
+        data_dir: ./data
+        
+        # A folder containing Jinja2 templates for the project-list website
+        template_dir: ./templates
+        
+        
+        # The location of the generated project-list website
+        website_dir: ./website
+        
+        # Metadata to be included in the generated website
+        title: My Recent Projects
+        author: None
+        email: None
     ''')
     create_values_file(join(path, 'type_values.txt'), '''
         # List your project-type values here, then run bin/configure.py
@@ -151,7 +175,7 @@ def create_configuration_file(path, content):
     print('creating %s' % path)
     with open(path, 'w', encoding="utf-8") as file:
         home = expanduser('~')
-        content = content.replace('ROOT', getcwd().replace(home, '~'))
+        content = content.replace('CWD', getcwd().replace(home, '~'))
         file.write('\n'.join(map(str.strip, content.strip().split('\n'))))
         file.write('\n')
         

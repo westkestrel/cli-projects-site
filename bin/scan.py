@@ -46,7 +46,7 @@ def make_parser():
         dest='sources', action='store',
         default=list(),
         nargs="*",
-        help='process SOURCES rather than %s' % config['root'])
+        help='process SOURCES rather than %s' % config['projects_root_dir'])
     return parser
     
 class FileError(Exception):
@@ -57,15 +57,20 @@ class Config:
     The project configuration is a collection of key-value pairs read from the
     config/config.json file.
     
-    If you access a nonexistent config using dictionary notation (e.g., config['root'])
-    a KeyError will be raised. If you use field notation (e.g., config.root) no exception
+    If you access a nonexistent config using dictionary notation (e.g., config['title'])
+    a KeyError will be raised. If you use field notation (e.g., config.title) no exception
     will be raised and the value will be None.
     '''
     def __init__(self, path):
         self.values = {
-            'name': 'Past Projects',
-            'root': '~/Projects',
+            'projects_root_dir': '~/Projects',
+            'data_dir': 'data',
+            'template_dir': 'template',
+            'website_dir': 'website',
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
+            'title': 'Past Projects',
+            'author': None,
+            'email': None,
         }
         if path != None:
             self.read(path)
@@ -73,15 +78,17 @@ class Config:
         self.values['skip_regex'] = self.make_regex(self.skip)
             
     def read(self, path):
+        if options != None and options.verbose: print('reading %s' % path)
         if path.endswith('.json'):
             for key, value in json.load(open(path)).items():
-                self.values[key] = value
+                self.values[key] = re.sub(r'^\./', '', value) # turn './data' into 'data'
         elif path.endswith('.txt'):
             with open(path, encoding='utf-8') as file:
                 for line in file:
                     line = re.sub(r'#.*', '', line).strip()
                     if line == '': continue
                     key, value = re.match(r'^([^:]+):\s*(.+)', line).group(1, 2)
+                    value = re.sub(r'^\./', '', value) # turn './data' into 'data'
                     if value == 'None' or value == 'null': value = None
                     self.values[key] = value
         else:
@@ -255,14 +262,14 @@ class Folder:
     
     def __init__(self, path, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
-        self.rootpath = config.root
-        root = join(config.root, '') # add trailing slash
+        self.rootpath = config.projects_root_dir.rstrip('/')
+        root = join(config.projects_root_dir, '') # add trailing slash
         self.abspath = path
         self.relpath = path[len(root):] if path.startswith(root) else None
         
     def scan_for_project_metadata(self):
         data = OrderedDict()
-        root = join(config.root,) # add trailing slash
+        root = join(config.projects_root_dir,) # add trailing slash
         files = self.walk
         data['name'] = basename(self.abspath)
         data['abspath'] = self.abspath
@@ -326,8 +333,8 @@ class Folder:
 class TestableFolder(Folder):
     '''
     A testable subclass of Folder. To use it, you provide the path and a dictionary
-    of fake timestamps relative to config.root, e.g.,
-      // assuming config.root is '~/Projects'
+    of fake timestamps relative to config.projects_root_dir, e.g.,
+      // assuming config.projects_root_dir is '~/Projects'
       f = TestableFolder('~/Projects/2026/MyProject', {
         '2026/MyProject': (0, 1),
         '2026/MyProject/README.md': (10, 50),
@@ -336,7 +343,7 @@ class TestableFolder(Folder):
     def __init__(self, path, content):
         '''
         path: absolute path to the folder (which need not actually exist on disk)
-        content: a dictionary mapping paths (relative to config.root) to a tuple
+        content: a dictionary mapping paths (relative to config.projects_root_dir) to a tuple
           (creation timestamp, modification timestamp)
         '''
         super(TestableFolder, self).__init__(path)
@@ -377,7 +384,7 @@ class Project:
     def __init__(self, path, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
         self.metadata = OrderedDict()
-        root = join(config.root, '') # add trailing slash
+        root = join(config.projects_root_dir, '') # add trailing slash
         self['name'] = basename(path)
         self['abspath'] = path
         self['relpath'] = path[len(root):] if path.startswith(root) else None
@@ -502,15 +509,26 @@ class Library:
     def is_readme_path(self, path):
         return 'readme' in basename(path).lower()
         
-    def scan_for_readme_files(self, path):
+    def scan_for_project_dirs(self, path):
+        '''
+        Scans the given path (i.e., the projects_root_dir) for subpaths matching the
+        projects glob pattern(s).
+        '''
         if config.projects == None:
             self.walk_for_readme_files(path)
         else:
             globs = re.split(r', +', config.projects) if ',' in config.projects else re.split(r' +', config.projects)
             projects = []
+            regex = config.skip_regex
             for single_glob in globs:
-                projects.extend(sorted(glob(join(path, single_glob))))
-            if len(projects) == 0:
+                dirs = glob(join(path, single_glob))
+                skipped_dirs = sorted(filter(lambda d: re.match(regex, basename(d)), dirs))
+                considered_dirs = sorted(filter(lambda d: not re.match(regex, basename(d)), dirs))
+                projects.extend(sorted(considered_dirs))
+                if options.verbose:
+                    for dir in skipped_dirs:
+                        print('skipping %s' % dir)
+            if len(projects) == 0 and not options.silent:
                 print('**error: no projects found in %s' % path, file=stderr)
                 print('**error: searching for paths matching %s' % config.projects, file=stderr)
             for subpath in projects:
@@ -518,12 +536,11 @@ class Library:
             
     def walk_for_readme_files(self, path, deep=True):
         for root, dirs, files in walk(path):
-            if deep: dirs[0:len(dirs)] = sorted(dirs)
-            else: dirs[0:len(dirs)] = []
-            files[0:len(files)] = sorted(files)
-            for i in reversed(range(0, len(dirs))):
-                if re.match(config.skip_regex, dirs[i]):
-                    dirs[i:i+1] = []
+            if deep:
+                dirs[0:len(dirs)] = sorted(filter(lambda f: not re.match(config.skip_regex, d)), dirs)
+            else:
+                dirs[0:len(dirs)] = [] # do not recurse into subdirectories
+            
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             if len(files) == 0:
                 if not options.silent: print('**warning: no README file found in %s' % root, file=stderr)
@@ -541,11 +558,12 @@ class Library:
         )
         
     def write_buckets(self):
-        data_dir = 'data'
+        data_dir = config.data_dir
         if not exists(data_dir) and not options.testing:
             if not options.silent:
                 print('mkdir -p "%s"' % data_dir)
             mkdir(data_dir)
+            
         buckets = dict()
         for project in self.projects.values():
             bucket_name = project.get_bucket_name()
@@ -556,8 +574,9 @@ class Library:
             self.write_bucket(bucket_name, buckets[bucket_name])
             
     def write_bucket(self, bucket_name, projects):
+        data_dir = config.data_dir
         data = list(map(lambda p: p.metadata, projects))
-        path = join('data', '%s.json' % bucket_name)
+        path = join(data_dir, '%s.json' % bucket_name)
         if options.testing:
             print('NOT writing %s' % path)
             return
@@ -584,23 +603,29 @@ def main(args=None):
     config = Config('config/config.txt')
     options = make_parser().parse_args(args)
     
-    if len(options.sources) == 0: sources = sorted(glob(expanduser(config.root)))
-    else: sources = options.sources
+    if len(options.sources) == 0:
+        sources = [config.projects_root_dir]
+    else:
+        sources = options.sources
+        
     library = Library()
     library.read_known_values_files()
+    
     if not options.silent: print('scanning project folders...')
     for source in sources:
         source = expanduser(source)
         if isdir(source):
             if options.verbose: print('scanning %s/' % source)
-            library.scan_for_readme_files(source)
+            library.scan_for_project_dirs(source)
         else:
             library.scan_readme_file(source)
+            
     for key, values in sorted(library.normalizer.found_values_by_key.items()):
+        unexpected_values = ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
+        if unexpected_values == '': continue
         print('**warning: field \'%s\' had unexpected values %s' % (
             key,
-            ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
-            ),
+            unexpected_values),
             file=stderr,
         )
     library.write_buckets()
