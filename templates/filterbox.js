@@ -84,7 +84,7 @@ const wireUpCheckboxes = () => {
                     .replace(/ *[(].*[)]/, '')
                     .replace(/:.*/, '')
                     .split(/, */)
-                    .map(x => x.replace(/\W+/, ' ').trim().replace(' ', '-'))
+                    .map(x => x.replace(/\W+/g, ' ').trim().replace(/ /g, '-'))
             const filterId = `${filterType}-${filterValues.join('-')}`
             const filterClassName = filterValues.join(' ')
             if (!toggleId) { toggle.setAttribute('id', filterId) }
