@@ -506,7 +506,13 @@ class Library:
         if config.projects == None:
             self.walk_for_readme_files(path)
         else:
-            projects = sorted(glob(join(path, config.projects)))
+            globs = re.split(r', +', config.projects) if ',' in config.projects else re.split(r' +', config.projects)
+            projects = []
+            for single_glob in globs:
+                projects.extend(sorted(glob(join(path, single_glob))))
+            if len(projects) == 0:
+                print('**error: no projects found in %s' % path)
+                print('**error: searching for paths matching %s' % config.projects)
             for subpath in projects:
                 self.walk_for_readme_files(subpath, deep=False)
             
