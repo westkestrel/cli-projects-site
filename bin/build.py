@@ -103,12 +103,14 @@ class Library:
             self.root['icons'] = OrderedDict()
             
         data = json.load(content, object_pairs_hook=OrderedDict)
-        data.append(OrderedDict([('name', 'None'), ('icon', '🚫')]))
+        capitalized_field_name = field_name[0].upper() + field_name[1:]
+        data.append(OrderedDict([('name', 'No %s' % capitalized_field_name), ('icon', '🚫')]))
         icons = OrderedDict()
         for group in data:
             names = [group['name']] if 'name' in group else group['names']
             for name in names:
                 icons[name] = group['icon']
+        icons['None'] = '🚫'
         self.root['iconic_fields'][field_name] = data
         self.root['icons'][field_name] = icons
         
@@ -133,8 +135,8 @@ class Library:
                     except ValueError:
                         date = strptime(project[field], '%B %d, %Y')
                     project[field] = strftime('%d-%b-%Y', date)
-                project_type = project['type'] if project['type'] != None else ''
-                project_status = project['status'] if project['status'] != None else ''
+                project_type = project['type'] if project['type'] != None else 'no-type'
+                project_status = project['status'] if project['status'] != None else 'no-status'
                 type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
                 status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
                 project['css_class'] = ' '.join([type_class, status_class]).strip()

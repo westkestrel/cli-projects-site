@@ -33,6 +33,7 @@ class TestLibrary(unittest.TestCase):
         '''.replace('\n        ', '').strip()))
         self.assertEqual(lib.root['icons']['status'], {
             'Abandoned': 'X',
+            'No Status': '🚫',
             'None': '🚫',
         })
         self.assertEqual(lib.root['iconic_fields']['status'], [{
@@ -40,7 +41,7 @@ class TestLibrary(unittest.TestCase):
             'icon': 'X',
             'description': 'Not working, but not under development either',
         }, {
-            'name': 'None',
+            'name': 'No Status',
             'icon': '🚫',
         }])
     
