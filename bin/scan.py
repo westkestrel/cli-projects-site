@@ -10,7 +10,7 @@ from time import localtime, strftime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import mkdir, walk
-from sys import argv, exit
+from sys import argv, exit, stderr
 from time import localtime, strftime
 import json
 import re
@@ -213,7 +213,7 @@ class Normalizer:
         try:
             known_value_set = self.known_values_by_key[key]
             if text != None and text not in known_value_set and options.verbose:
-                print('**warning: "%s" is not a known value for field "%s"' % (text, key))
+                print('**warning: "%s" is not a known value for field "%s"' % (text, key), file=stderr)
             if key not in self.found_values_by_key: self.found_values_by_key[key] = set()
             self.found_values_by_key[key].add(text)
         except KeyError:
@@ -511,8 +511,8 @@ class Library:
             for single_glob in globs:
                 projects.extend(sorted(glob(join(path, single_glob))))
             if len(projects) == 0:
-                print('**error: no projects found in %s' % path)
-                print('**error: searching for paths matching %s' % config.projects)
+                print('**error: no projects found in %s' % path, file=stderr)
+                print('**error: searching for paths matching %s' % config.projects, file=stderr)
             for subpath in projects:
                 self.walk_for_readme_files(subpath, deep=False)
             
@@ -526,7 +526,7 @@ class Library:
                     dirs[i:i+1] = []
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             if len(files) == 0:
-                if not options.silent: print('**warning: no README file found in %s' % root)
+                if not options.silent: print('**warning: no README file found in %s' % root, file=stderr)
                 continue
             elif len(files) > 1:
                 raise FileError('found more than one README file:\n%s' % '\n'.join(map(lambda f: join(root, f), files)))
@@ -600,7 +600,8 @@ def main(args=None):
         print('**warning: field \'%s\' had unexpected values %s' % (
             key,
             ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
-            )
+            ),
+            file=stderr,
         )
     library.write_buckets()
     return 0
