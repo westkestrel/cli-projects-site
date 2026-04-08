@@ -15,7 +15,7 @@
   </th>
 </tr>
 {% for project in buckets[bucket] | reverse %}
-<tr class="project {{ project.status }} {{ project.type }}">
+<tr class="project {{ project.css_class }}">
   <td class="date">{{ project.completed | default(project.abandoned) | default(project.date) | default(project.commenced) }}</td>
   {% if project.type %}
   <td class="type" title="{{ project.type }}">{{ icons.type[project.type] }}</td>

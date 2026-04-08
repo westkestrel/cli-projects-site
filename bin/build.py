@@ -133,6 +133,11 @@ class Library:
                     except ValueError:
                         date = strptime(project[field], '%B %d, %Y')
                     project[field] = strftime('%d-%b-%Y', date)
+                project_type = project['type'] if project['type'] != None else ''
+                project_status = project['status'] if project['status'] != None else ''
+                type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
+                status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
+                project['css_class'] = ' '.join([type_class, status_class]).strip()
         self.root['buckets'][bucket_name] = data
         
     def write(self, path):

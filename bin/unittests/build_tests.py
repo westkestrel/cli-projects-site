@@ -69,5 +69,6 @@ class TestLibrary(unittest.TestCase):
             'completed': '15-Mar-2026',
             'newest_file': 'README.md',
             'type': 'Webapp',
-            'status': 'Complete'
+            'status': 'Complete',
+            'css_class': 'webapp complete',
         }])
