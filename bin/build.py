@@ -69,11 +69,13 @@ class Library:
         for path in sorted(glob(join(data_dir, '*_values.json'))):
             self.read_iconic_fields(path)
             
-        bucket_files = sorted(filter(lambda d: basename(d) != 'library.json', glob(join(data_dir, 'buckets/*.json'))))
-        if len(bucket_files) == 0:
-            print('**error: no data files found in %s' % data_dir, file=stderr)
-        for path in bucket_files:
-            self.read_bucket(path)
+        bucket_list_path = join(expanduser(config.data_dir), 'buckets.json')
+        bucket_names = self.read_bucket_list(bucket_list_path)
+        if len(bucket_names) == 0:
+            print('**error: no buckets found in %s' % (bucket_list_path), file=stderr)
+        for bucket_name in bucket_names:
+            bucket_path = join(join(expanduser(config.data_dir), 'buckets'), bucket_name) + '.json'
+            self.read_bucket(bucket_path)
         
         self.process_unclassified_values()
             
@@ -116,6 +118,14 @@ class Library:
         self.root['iconic_fields'][field_name] = data
         self.root['icons'][field_name] = icons
         
+    def read_bucket_list(self, path):
+        '''
+        Load the array of bucket names.
+        '''
+        if options.verbose: print('reading %s' % path)
+        with open(path, encoding='utf-8') as file:
+            return json.load(file)
+        
     def read_bucket(self, path):
         '''
         Load the given project-array JSON file and put it into the data dictionary.
@@ -155,7 +165,8 @@ class Library:
                 self.unclassified_types.add(project_type)
             if project_status not in status_icons:
                 self.unclassified_statuses.add(project_status)
-        self.root['buckets'][bucket_name] = data
+        bucket_name = bucket_name.replace('--', '/').replace('--', '/')
+        self.root['buckets'][basename(bucket_name)] = data
         
     def process_unclassified_values(self):
         self.root['unclassified'] = OrderedDict()

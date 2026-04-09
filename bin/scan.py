@@ -401,7 +401,10 @@ class Project:
         self['relpath'] = path[len(root):] if path.startswith(root) else None
         
     def get_bucket_name(self):
-        return basename(dirname(self.abspath))
+        if self.relpath != None:
+            return dirname(self.relpath).replace('/', '--')
+        else:
+            return basename(dirname(self.abspath))
         
     def scan(self, project_dir, readme_path, apply=True):
         if project_dir != None:
@@ -519,7 +522,8 @@ class Library:
         self.normalizer = normalizer if normalizer != None else Normalizer()
         self.known_values_by_key = dict()
         self.type_patterns_by_key = dict()
-        self.projects = OrderedDict()
+        self.projects = OrderedDict() # projects keyed by absolute path
+        self.buckets = OrderedDict() # arrays of projects, keyed by bucket name
         
     def read_config_files(self):
         paths = sorted(glob(join(config.data_dir, '*_values.json')))
@@ -557,6 +561,9 @@ class Library:
             if not create: return None
         project = Project(path, normalizer=self.normalizer, type_patterns_by_key=self.type_patterns_by_key)
         self.projects[path] = project
+        bucket_name = project.get_bucket_name()
+        try: self.buckets[bucket_name].append(project)
+        except KeyError: self.buckets[bucket_name] = [project]
         return project
         
     def is_readme_path(self, path):
@@ -587,15 +594,15 @@ class Library:
             for subpath in projects:
                 self.walk_for_readme_files(subpath, deep=False)
             
-    def walk_for_readme_files(self, path, deep=True):
-        for root, dirs, files in walk(path):
+    def walk_for_readme_files(self, project_path, deep=True):
+        for root, dirs, files in walk(project_path):
             if deep:
                 dirs[0:len(dirs)] = sorted(filter(lambda f: not re.match(config.skip_regex, d)), dirs)
             else:
                 dirs[0:len(dirs)] = [] # do not recurse into subdirectories
             
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
-            project = self.get_project(path, create=True)
+            project = self.get_project(project_path, create=True)
             if len(files) == 0:
                 if not options.silent: print('**warning: no README file found in %s' % root, file=stderr)
                 project.scan(root, None)
@@ -616,14 +623,9 @@ class Library:
                 print('mkdir -p "%s"' % bucket_dir)
             mkdir(bucket_dir)
             
-        buckets = dict()
-        for project in self.projects.values():
-            bucket_name = project.get_bucket_name()
-            try: buckets[bucket_name].append(project)
-            except KeyError: buckets[bucket_name] = [project]
-        if not options.silent: print('writing %d json files into %s/ folder' % (len(buckets), bucket_dir))
-        for bucket_name in sorted(buckets.keys()):
-            self.write_bucket(bucket_dir, bucket_name, buckets[bucket_name])
+        if not options.silent: print('writing %d json files into %s/ folder' % (len(self.buckets), bucket_dir))
+        for bucket_name in sorted(self.buckets.keys()):
+            self.write_bucket(bucket_dir, bucket_name, self.buckets[bucket_name])
             
     def write_bucket(self, bucket_dir, bucket_name, projects):
         data = list(map(lambda p: p.metadata, projects))
@@ -634,6 +636,15 @@ class Library:
         if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(data, file, indent=4, ensure_ascii=False)
+            
+    def write_bucket_list(self):
+        path = join(expanduser(config.data_dir), 'buckets.json')
+        if options.testing:
+            print('NOT writing %s' % path)
+            return
+        if options.verbose: print('writing %s' % path)
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump(list(self.buckets.keys()), file, indent=4, ensure_ascii=False)
             
 def preflight(options):
     '''
@@ -681,6 +692,7 @@ def main(args=None):
             file=stderr,
         )
     library.write_buckets()
+    library.write_bucket_list()
     return 0
     
 if __name__ == '__main__':
