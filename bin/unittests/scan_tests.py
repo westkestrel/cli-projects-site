@@ -1,6 +1,6 @@
 import unittest
 from os.path import join
-from scan import config, Config, Normalizer, Folder, TestableFolder, Project, Library
+from scan import config, Config, PatternRuleGroup, PatternRule, Normalizer, Folder, TestableFolder, Project, Library
 
 class TestConfig(unittest.TestCase):
 
@@ -47,6 +47,24 @@ class TestNormalizer(unittest.TestCase):
         
 class TestFolder(unittest.TestCase):
 
+    def test_testable_folder(self):
+        root = config.projects_root_dir
+        path = '2026/MyProject'
+        f = TestableFolder(path, {
+            '2026/MyProject': [10, 20],
+            '2026/MyProject/README.md': [30, 40],
+            '2026/MyProject/package.json': [50, 60],
+            '2026/MyProject/src': [70, 80],
+            '2026/MyProject/src/App.js': [90, 100],
+        })
+        self.assertEqual(f.get_ctime(join(root, '2026/MyProject/README.md')), 30)
+        self.assertEqual(f.get_mtime(join(root, '2026/MyProject/README.md')), 40)
+        self.assertEqual(f.listdir(join(root, '2026/MyProject')), [
+            'README.md',
+            'package.json',
+            'src',
+        ])
+
     def test_init(self):
         self.assertNotEqual(config.projects_root_dir, '')
         path = join(config.projects_root_dir, '2026/MyProject')
@@ -72,25 +90,6 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['type'], None)
         self.assertEqual(d['status'], None)
         
-    def test_scan_website(self):
-        path = join(config.projects_root_dir, '2026/www.MyProject.com')
-        f = TestableFolder(path, {
-            '2026/www.MyProject.com': [0, 0],
-            '2026/www.MyProject.com/README.md': [0, 0],
-        })
-        d = f.scan_for_project_metadata()
-        self.assertEqual(d['type'], 'Website')
-        
-    def test_scan_react_app(self):
-        path = join(config.projects_root_dir, '2026/MyProject')
-        f = TestableFolder(path, {
-            '2026/MyProject': [0, 0],
-            '2026/MyProject/README.md': [0, 0],
-            '2026/MyProject/package.json': [0, 0],
-        })
-        d = f.scan_for_project_metadata()
-        self.assertEqual(d['type'], 'Web App')
-
 class TestProject(unittest.TestCase):
 
     def test_init_in_project_root(self):
@@ -106,8 +105,60 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.relpath, None)
         self.assertEqual(p.get_bucket_name(), '2026')
+        
+    def test_scan_filenames_no_glob_case(self):
+        path = join(config.projects_root_dir, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/README.md': [0, 0],
+            '2026/MyProject/package.json': [0, 0],
+        })
+        p = Project(path, folder=f)
+        group = PatternRuleGroup(None)
+        group.key = 'type'
+        group.rules.append(PatternRule('Web App', 'package.json'))
+        group.rules.append(PatternRule('Script', '*.py *.pl *.rb'))
+        p.type_patterns_by_key['type'] = group
+        data = p.scan_filenames(path)
+        self.assertEqual(data, {
+            'type': 'Web App',
+        })
 
-    def test_scan(self):
+    def test_scan_filenames_glob_case(self):
+        path = join(config.projects_root_dir, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/README.md': [0, 0],
+            '2026/MyProject/foo.py': [0, 0],
+        })
+        p = Project(path, folder=f)
+        group = PatternRuleGroup(None)
+        group.key = 'type'
+        group.rules.append(PatternRule('Web App', 'package.json'))
+        group.rules.append(PatternRule('Script', '*.py *.pl *.rb'))
+        p.type_patterns_by_key['type'] = group
+        data = p.scan_filenames(path)
+        self.assertEqual(data, {
+            'type': 'Script',
+        })
+
+    def test_scan_filenames_no_match_case(self):
+        path = join(config.projects_root_dir, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/README.md': [0, 0],
+            '2026/MyProject/foo.swift': [0, 0],
+        })
+        p = Project(path, folder=f)
+        group = PatternRuleGroup(None)
+        group.key = 'type'
+        group.rules.append(PatternRule('Web App', 'package.json'))
+        group.rules.append(PatternRule('Script', '*.py *.pl *.rb'))
+        p.type_patterns_by_key['type'] = group
+        data = p.scan_filenames(path)
+        self.assertEqual(data, { })
+
+    def test_scan_readme(self):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
@@ -129,7 +180,7 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.type, 'Video')
         self.assertEqual(p.status, 'Abandoned')
 
-    def test_scan_without_apply(self):
+    def test_scan_readme_without_apply(self):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
@@ -151,7 +202,7 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.type, None)
         self.assertEqual(p.status, None)
 
-    def test_scan_inferred_values(self):
+    def test_scan_readme_inferred_values(self):
         content = '''
         # My Great Project
         

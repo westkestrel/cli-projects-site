@@ -9,7 +9,7 @@ from collections import OrderedDict
 from time import localtime, strftime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
-from os import mkdir, walk
+from os import mkdir, listdir, walk
 from sys import argv, exit, stderr
 from time import localtime, strftime
 import json
@@ -107,7 +107,7 @@ class Config:
             self.values['skip_regex'] = self.make_regex(value)
         
     def make_regex(self, glob_list_string):
-        glob_list = list(map(self.make_regex_from_glob, re.split(r', *', glob_list_string)))
+        glob_list = list(map(self.make_regex_from_glob, re.split(r'[,\s]+', glob_list_string)))
         return '^(?:%s)$' % '|'.join(glob_list)
         
     def make_regex_from_glob(self, text):
@@ -136,7 +136,8 @@ class KnownValues:
     '''
     def __init__(self, path):
         name = splitext(basename(path))[0] # e.g., 'type_values'
-        self.key = '_'.join(name.split('_')[1:]) # e.g., 'type'
+        bits = name.split('_')
+        self.key = '_'.join(bits[0:len(bits)-1])
         self.aliases = OrderedDict()
         self.by_icon = OrderedDict()
         self.groups = list()
@@ -156,6 +157,49 @@ class KnownValues:
             
         def is_known(self, value):
             return value in self.values
+            
+class PatternRuleGroup:
+    '''
+    A pattern-rule group is a collection of field values, and glob patterns that will
+    signal that field value if any files in the project match. e.g.
+        XCode: *.xcodeproj
+        Web App: node_modules
+    '''
+    
+    def __init__(self, path):
+        if path != None:
+            name = splitext(basename(path))[0] # e.g., 'type_values'
+            bits = name.split('_')
+            self.key = '_'.join(bits[0:len(bits)-1])
+        self.rules = []
+        if path != None: self.read(path)
+        
+    def read(self, path):
+        with open(path, encoding='utf-8') as file:
+            data = json.load(file)
+            for item in data:
+                self.rules.append(PatternRule(item['value'], ', '.join(item['globs'])))
+                
+    def match_any(self, filenames):
+        for filename in filenames:
+            match = self.match(filename)
+            if match != None: return match
+        return None
+                
+    def match(self, filename):
+        for rule in self.rules:
+            if re.match(rule.regex, filename):
+                return rule.value
+        return None
+                
+class PatternRule:
+    '''
+    A pattern rule is a value and the glob pattern(s) that will trigger it if they match.
+    '''
+    def __init__(self, value, glob_list_string):
+        self.value = value
+        self.globs = glob_list_string
+        self.regex = config.make_regex(self.globs)
 
 class Normalizer:
     '''
@@ -282,8 +326,6 @@ class Folder:
         data['newest_file'] = newest
         data['type'] = None
         data['status'] = None
-        if data['name'].startswith('www.'): data['type'] = 'Website'
-        if self.exists(join(self.abspath, 'package.json')): data['type'] = 'Web App'
         return data
         
     def exists(self, path):
@@ -327,6 +369,13 @@ class Folder:
                     timestamp = subtime
         return newest, timestamp
         
+    def listdir(self, path):
+        '''
+        Returns the files and folders within the given folder path.
+        '''
+        return listdir(path)
+                        
+        
     def walk(self, path=None):
         return walk(path if path != None else self.abspath)
 
@@ -350,16 +399,37 @@ class TestableFolder(Folder):
         self.content = content
         
     def exists(self, path):
-        rpath = path[len(self.rootpath) + 1:]
+        rootpath_slash = join(self.rootpath, '') # add trailing slash
+        if not path.startswith(self.rootpath):
+            raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (path, self.rootpath))
+        rpath = path[len(rootpath_slash):]
         return rpath in self.content
         
     def get_ctime(self, path):
-        rpath = path[len(self.rootpath) + 1:]
+        rootpath_slash = join(self.rootpath, '') # add trailing slash
+        if not path.startswith(self.rootpath):
+            raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (path, self.rootpath))
+        rpath = path[len(rootpath_slash):]
         return self.content[rpath][0]
         
     def get_mtime(self, path):
-        rpath = path[len(self.rootpath) + 1:]
+        rootpath_slash = join(self.rootpath, '') # add trailing slash
+        if not path.startswith(self.rootpath):
+            raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (path, self.rootpath))
+        rpath = path[len(rootpath_slash):]
         return self.content[rpath][1]
+        
+    def listdir(self, path):
+        rootpath_slash = join(self.rootpath, '') # add trailing slash
+        if not path.startswith(self.rootpath):
+            raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (path, self.rootpath))
+        rpath = path[len(rootpath_slash):]
+        rpath_slash = join(rpath, '')
+        paths = sorted(self.content.keys())
+        paths = map(lambda p: p[len(rpath_slash):], filter(lambda p: p.startswith(rpath_slash), paths))
+        paths = filter(lambda p: dirname(p) == '', paths)
+        paths = list(paths)
+        return paths
         
     def walk(self, path):
         '''
@@ -381,8 +451,10 @@ class Project:
     DATE_KEYS = set(['date', 'commenced', 'completed', 'abandoned', 'paused', 'resumed'])
     STATUS_KEYS = set(['completed', 'abandoned', 'paused', 'resumed'])
     
-    def __init__(self, path, normalizer=None):
+    def __init__(self, path, folder=None, normalizer=None, type_patterns_by_key=None):
+        self.folder = folder if folder != None else Folder(path)
         self.normalizer = normalizer if normalizer != None else Normalizer()
+        self.type_patterns_by_key = type_patterns_by_key if type_patterns_by_key != None else dict()
         self.metadata = OrderedDict()
         root = join(config.projects_root_dir, '') # add trailing slash
         self['name'] = basename(path)
@@ -392,6 +464,13 @@ class Project:
     def get_bucket_name(self):
         return basename(dirname(self.abspath))
         
+    def scan(self, project_dir, readme_path, apply=True):
+        if project_dir != None:
+            self.scan_folder_metadata(project_dir, apply=apply)
+            self.scan_filenames(project_dir, apply=apply)
+        if readme_path != None:
+            self.scan_readme_file(join(project_dir, readme_path), apply=apply)
+
     def scan_folder_metadata(self, path, apply=True):
         '''
         Extracts project name, date, etc. from the filesystem, optionally applies it
@@ -401,6 +480,24 @@ class Project:
         not the result of merging.
         '''
         data = Folder(path).scan_for_project_metadata()
+        if apply: self.apply(data)
+        return data
+        
+    def scan_filenames(self, project_dir, apply=True):
+        '''
+        Examines the filenames in the folder (and the and the foldername itself) and
+        returns any key-value pairs that are suggested by the appearance of certain
+        filenames.
+        '''
+        data = OrderedDict()
+        filenames = self.folder.listdir(project_dir)
+        filenames = filter(lambda f: not re.match(config.skip_regex, f), filenames)
+        filenames = sorted(filenames)
+        filenames = [basename(project_dir)] + filenames
+        for key, pattern_group in self.type_patterns_by_key.items():
+            match = pattern_group.match_any(filenames)
+            if match != None:
+                data[key] = match
         if apply: self.apply(data)
         return data
         
@@ -449,7 +546,11 @@ class Project:
         '''
         for data in args:
             for key, value in data.items():
+                if (value == None or value == 'None') and key in self: continue
                 self[key] = value
+                
+    def __contains__(self, key):
+        return key in self.metadata or self.normalizer.key(key) in self.metadata
                 
     def __getattr__(self, key):
         try:
@@ -478,13 +579,19 @@ class Library:
     def __init__(self, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
         self.known_values_by_key = dict()
+        self.type_patterns_by_key = dict()
         self.projects = OrderedDict()
         
-    def read_known_values_files(self):
+    def read_config_files(self):
         paths = sorted(glob('config/*_values.json'))
         if not options.silent: print('reading %d known-values files from %s/ folder' % (len(paths), 'config'))
         for path in paths:
             self.read_known_values_file(path)
+            
+        paths = sorted(glob('config/*_patterns.json'))
+        if not options.silent: print('reading %d type-pattern files from %s/ folder' % (len(paths), 'config'))
+        for path in paths:
+            self.read_type_patterns_file(path)
             
     def read_known_values_file(self, path):
         if options.verbose: print('reading %s' % path)
@@ -496,13 +603,20 @@ class Library:
             self.normalizer.add_alias(key, value, new_value)
         self.normalizer.set_known_values_for_key(known_values.values, key)
         
+    def read_type_patterns_file(self, path):
+        if options.verbose: print('reading %s' % path)
+        parts = splitext(basename(path))[0].split('_') # e.g., type_values.json => ['type', 'values']
+        key = '_'.join(parts[0:len(parts)-1])
+        patterns = PatternRuleGroup(path)
+        self.type_patterns_by_key[key] = patterns
+        
     def get_project(self, path, create=True):
         if self.is_readme_path(path): path = dirname(path)
         try:
             return self.projects[path]
         except KeyError:
             if not create: return None
-        project = Project(path, normalizer=self.normalizer)
+        project = Project(path, normalizer=self.normalizer, type_patterns_by_key=self.type_patterns_by_key)
         self.projects[path] = project
         return project
         
@@ -542,21 +656,15 @@ class Library:
                 dirs[0:len(dirs)] = [] # do not recurse into subdirectories
             
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
+            project = self.get_project(path, create=True)
             if len(files) == 0:
                 if not options.silent: print('**warning: no README file found in %s' % root, file=stderr)
-                continue
+                project.scan(root, None)
             elif len(files) > 1:
                 raise FileError('found more than one README file:\n%s' % '\n'.join(map(lambda f: join(root, f), files)))
             else:
-                self.scan_readme_file(join(root, files[0]))
+                project.scan(root, join(root, files[0]))
     
-    def scan_readme_file(self, path):
-        project = self.get_project(path, create=True)
-        project.apply(
-            project.scan_folder_metadata(dirname(path)),
-            project.scan_readme_file(path)
-        )
-        
     def write_buckets(self):
         data_dir = config.data_dir
         if not exists(data_dir) and not options.testing:
@@ -609,7 +717,7 @@ def main(args=None):
         sources = options.sources
         
     library = Library()
-    library.read_known_values_files()
+    library.read_config_files()
     
     if not options.silent: print('scanning project folders...')
     for source in sources:
