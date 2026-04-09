@@ -142,12 +142,27 @@ def create_configuration_folder(path):
         🎬 Movie, Video, Flash
         🎞️️ Photography (aka Photos)
         🖋️ Prose, Poetry, Blog, Writing
-        📝 Notes, Docs
+        📝 Notes, Docs, Documents
         ＞ Script (aka Shellscript), Command-Line Utility (compiled code)
         🖥️ Application (desktop)
         📱 App (tablet or phone)
-        🕸️ Website
+        🕸️ Website, Web App
         🔧 Admin, Sysadmin, Webadmin
+    ''')
+    create_values_file(join(path, 'type_patterns.txt'), '''
+        # List your project-type glob patterns here, then run bin/configure.py
+        # to convert it to a JSON file.
+        #
+        # If the project directory name or the name of any top-level file or folder
+        # matches the patterns then the project type will be set appropriately. The
+        # first rule that matches will be used (e.g., if MySite.com contains a
+        # a package.json file then the type will be 'Web App')
+        
+        Web App: package.json
+        Website: www.* *.ca *.com *.org
+        App: *.xcodeproj # this may falsely identify an Application as an App
+        Notes: *Notes *Quotes *Repairs
+        Documents: *.pages *.numbers
     ''')
     create_values_file(join(path, 'status_values.txt'), '''
         # List your project-status values here, then run bin/configure.py
@@ -189,6 +204,8 @@ def process(path):
         process_config_file(path)
     elif basename(path).endswith('_values.txt'):
         process_values_file(path)
+    elif basename(path).endswith('_patterns.txt'):
+        process_patterns_file(path)
     else:
         raise ConfigError('unrecognized configuration file', path, None, None)
         
@@ -329,6 +346,33 @@ def process_tag_content(lines, path=None):
         
     return tags
     
+def process_patterns_file(path):
+    '''
+    Reads a type_patterns.txt or status_patterns.txt file and writes the corresponding json file.
+    '''
+    if options.verbose: print('reading %s' % path)
+    with open(path, encoding="utf-8") as file:
+        data = process_patterns_content(file, path)
+    output_path = splitext(path)[0] + '.json'
+    if options.verbose:
+        preamble = 'NOT ' if options.testing else ''
+        print('%swriting %s' % (preamble, output_path))
+    if options.testing: return
+    with open(output_path, 'w', encoding="utf-8") as file:
+        file.write(json.dumps(data, indent=4, ensure_ascii=False))
+        
+def process_patterns_content(content, path):
+    data = list()
+    for line in content:
+        line = re.sub(r'\s*#.*', '', line).strip()
+        if len(line) == 0: continue
+        value, globs = re.match(r'^([^:]+):\s*(.+)', line).group(1, 2)
+        data.append(OrderedDict([
+            ('value', value),
+            ('globs', re.split(r'[,\s]+', globs)),
+        ]))
+    return data
+
 if __name__ == '__main__':
     options = make_parser().parse_args()
     status = preflight(options)
