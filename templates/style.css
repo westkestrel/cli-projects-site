@@ -37,16 +37,25 @@ section.filter-controls {
     display: flex;
     flex-direction: row;
 }
+
+section.filter-controls ul {
+    padding-left: 0;
+}
+
+section.filter-controls li {
+    list-style-type: none;
+    padding-left: 2em;
+}
+section.filter-controls li label > :first-child {
+    margin-left: -2em
+}
+
 section.filter-controls label {
     display: inline-block;
     padding-left: 2em;
 }
 section.filter-controls label:before {
     margin-left: -2em;
-}
-
-li {
-    list-style-type: none;
 }
 
 /* styles related to the project table */
