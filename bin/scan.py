@@ -16,7 +16,7 @@ import json
 import re
 import subprocess
 
-from configure import preflight as preflight_configure, main as main_configure
+from configure import Config, preflight as preflight_configure, main as main_configure
     
 config = None
 options = None
@@ -52,68 +52,7 @@ def make_parser():
 class FileError(Exception):
     pass
     
-class Config:
-    '''
-    The project configuration is a collection of key-value pairs read from the
-    config/config.json file.
-    
-    If you access a nonexistent config using dictionary notation (e.g., config['title'])
-    a KeyError will be raised. If you use field notation (e.g., config.title) no exception
-    will be raised and the value will be None.
-    '''
-    def __init__(self, path):
-        self.values = {
-            'projects_root_dir': '~/Projects',
-            'data_dir': 'data',
-            'template_dir': 'template',
-            'website_dir': 'website',
-            'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
-            'title': 'Past Projects',
-            'author': None,
-            'email': None,
-        }
-        if path != None:
-            self.read(path)
-        if self.skip == None: raise ValueError('config is missing "skip" field')
-        self.values['skip_regex'] = self.make_regex(self.skip)
-            
-    def read(self, path):
-        if options != None and options.verbose: print('reading %s' % path)
-        if path.endswith('.json'):
-            for key, value in json.load(open(path)).items():
-                self.values[key] = re.sub(r'^\./', '', value) # turn './data' into 'data'
-        elif path.endswith('.txt'):
-            with open(path, encoding='utf-8') as file:
-                for line in file:
-                    line = re.sub(r'#.*', '', line).strip()
-                    if line == '': continue
-                    key, value = re.match(r'^([^:]+):\s*(.+)', line).group(1, 2)
-                    value = re.sub(r'^\./', '', value) # turn './data' into 'data'
-                    if value == 'None' or value == 'null': value = None
-                    self.values[key] = value
-        else:
-            raise ValueError('%s has unexpected file extension' % path)
-            
-    def __getattr__(self, key):
-        try: return self.values[key]
-        except KeyError: return None
-    
-    def __getitem__(self, key):
-        return self.values[key]
-        
-    def __setitem__(self, key, value):
-        self.values[key] = value
-        if key == 'skip':
-            self.values['skip_regex'] = self.make_regex(value)
-        
-    def make_regex(self, glob_list_string):
-        glob_list = list(map(self.make_regex_from_glob, re.split(r'[,\s]+', glob_list_string)))
-        return '^(?:%s)$' % '|'.join(glob_list)
-        
-    def make_regex_from_glob(self, text):
-        return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
-
-config = Config('config/config.txt')
+config = Config()
 
 class KnownValueGroup:
     '''
@@ -306,8 +245,8 @@ class Folder:
     
     def __init__(self, path, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
-        self.rootpath = config.projects_root_dir.rstrip('/')
-        root = join(config.projects_root_dir, '') # add trailing slash
+        self.rootpath = expanduser(config.projects_root_dir.rstrip('/'))
+        root = join(self.rootpath, '') # add trailing slash
         self.abspath = path
         self.relpath = path[len(root):] if path.startswith(root) else None
         
@@ -456,7 +395,7 @@ class Project:
         self.normalizer = normalizer if normalizer != None else Normalizer()
         self.type_patterns_by_key = type_patterns_by_key if type_patterns_by_key != None else dict()
         self.metadata = OrderedDict()
-        root = join(config.projects_root_dir, '') # add trailing slash
+        root = join(expanduser(config.projects_root_dir), '') # add trailing slash
         self['name'] = basename(path)
         self['abspath'] = path
         self['relpath'] = path[len(root):] if path.startswith(root) else None
@@ -583,12 +522,12 @@ class Library:
         self.projects = OrderedDict()
         
     def read_config_files(self):
-        paths = sorted(glob('config/*_values.json'))
+        paths = sorted(glob(join(config.data_dir, '*_values.json')))
         if not options.silent: print('reading %d known-values files from %s/ folder' % (len(paths), 'config'))
         for path in paths:
             self.read_known_values_file(path)
             
-        paths = sorted(glob('config/*_patterns.json'))
+        paths = sorted(glob(join(config.data_dir, '*_patterns.json')))
         if not options.silent: print('reading %d type-pattern files from %s/ folder' % (len(paths), 'config'))
         for path in paths:
             self.read_type_patterns_file(path)
@@ -667,24 +606,28 @@ class Library:
     
     def write_buckets(self):
         data_dir = config.data_dir
+        bucket_dir = join(data_dir, 'buckets')
         if not exists(data_dir) and not options.testing:
             if not options.silent:
                 print('mkdir -p "%s"' % data_dir)
             mkdir(data_dir)
+        if not exists(bucket_dir) and not options.testing:
+            if not options.silent:
+                print('mkdir -p "%s"' % bucket_dir)
+            mkdir(bucket_dir)
             
         buckets = dict()
         for project in self.projects.values():
             bucket_name = project.get_bucket_name()
             try: buckets[bucket_name].append(project)
             except KeyError: buckets[bucket_name] = [project]
-        if not options.silent: print('writing %d json files into %s/ folder' % (len(buckets), data_dir))
+        if not options.silent: print('writing %d json files into %s/ folder' % (len(buckets), bucket_dir))
         for bucket_name in sorted(buckets.keys()):
-            self.write_bucket(bucket_name, buckets[bucket_name])
+            self.write_bucket(bucket_dir, bucket_name, buckets[bucket_name])
             
-    def write_bucket(self, bucket_name, projects):
-        data_dir = config.data_dir
+    def write_bucket(self, bucket_dir, bucket_name, projects):
         data = list(map(lambda p: p.metadata, projects))
-        path = join(data_dir, '%s.json' % bucket_name)
+        path = join(bucket_dir, '%s.json' % bucket_name)
         if options.testing:
             print('NOT writing %s' % path)
             return
@@ -708,8 +651,9 @@ def preflight(options):
 def main(args=None):
     global options
     global config
-    config = Config('config/config.txt')
-    options = make_parser().parse_args(args)
+    config = Config()
+    if __name__ == '__main__': options = make_parser().parse_args(args)
+    else: options, unknown = make_parser().parse_known_args(args)
     
     if len(options.sources) == 0:
         sources = [config.projects_root_dir]

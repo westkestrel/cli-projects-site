@@ -13,6 +13,8 @@ import json
 import re
 
 options = None
+config = None
+
 def make_parser():
     parser = ArgumentParser(description=__doc__)
     parser.add_argument('-s', '--silent',
@@ -52,7 +54,79 @@ class ConfigError(Exception):
             self.message
         )
         return text.replace(': None', '').replace('\nNone', '')
+
+class Config:
+    '''
+    The project configuration is a collection of key-value pairs read from the
+    config/config.txt file.
+    
+    If you access a nonexistent config using dictionary notation (e.g., config['title'])
+    a KeyError will be raised. If you use field notation (e.g., config.title) no exception
+    will be raised and the value will be None.
+
+    Calling Config('/path/to/file.txt') will initialize the config from the file content
+    Calling Config() will create initialize from 'config/config.txt'
+    Calling Config(False) or Config(None) will create an empty config
+    '''
+    def __init__(self, path='config/config.txt'):
+        self.values = {
+            'projects_root_dir': '~/Projects',
+            'data_dir': 'data',
+            'template_dir': 'template',
+            'website_dir': 'website',
+            'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
+            'title': 'Past Projects',
+            'author': None,
+            'email': None,
+        }
+        if path != False and path != None and exists(path):
+            self.read(path)
+        if 'skip' in self.values:
+            self.values['skip_regex'] = self.make_regex(self.values['skip'])
+
+    def read(self, path):
+        # we cannot refer to options because we may read config before parse_args() is called
+        if '-v' in argv or '--verbose' in argv: print('reading %s' % path)
+        if path.endswith('.json'):
+            for key, value in json.load(open(path, encoding='utf-8')).items():
+                self.values[key] = re.sub(r'^\./', '', value) # turn './data' into 'data'
+        elif path.endswith('.txt'):
+            with open(path, encoding='utf-8') as file:
+                for i, orig_line in enumerate(file, start=1):
+                    line = re.sub(r'#.*', '', orig_line).strip()
+                    if line == '': continue
+                    try: key, value = re.match(r'(.+):\s*(.+)', line).group(1, 2)
+                    except ValueError:
+                        print('**error: malformed line in %s line %s:\n%s' % (path, i, orig_line), file=stderr)
+                        exit(1)
+                    self.values[key] = re.sub(r'^\./', '', value) # turn './data' into 'data'
+                if 'skip' in self.values:
+                    self.values['skip_regex'] = self.make_regex(self.values['skip'])
+        else:
+            raise ValueError('%s has unexpected file extension' % path)
+                
+    def __str__(self):
+        return '{\n  %s\n}' % ',\n  '.join(map(lambda key_and_value: '%s: "%s"' % key_and_value, self.values.items()))
+            
+    def __getattr__(self, key):
+        try: return self.values[key]
+        except KeyError: return None
+    
+    def __getitem__(self, key):
+        return self.values[key]
         
+    def __setitem__(self, key, value):
+        self.values[key] = value
+        if key == 'skip':
+            self.values['skip_regex'] = self.make_regex(value)
+        
+    def make_regex(self, glob_list_string):
+        glob_list = list(map(self.make_regex_from_glob, re.split(r'[,\s]+', glob_list_string)))
+        return '^(?:%s)$' % '|'.join(glob_list)
+        
+    def make_regex_from_glob(self, text):
+        return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
+
 def preflight(options):
     '''
     The configure script has no preflight requirements, so this
@@ -65,7 +139,10 @@ def main(args=None):
     Reads text files and writes json files.
     '''
     global options
-    options = make_parser().parse_args(args)
+    global config
+    if __name__ == '__main__': options = make_parser().parse_args(args)
+    else: options, unknown = make_parser().parse_known_args(args)
+    config = Config()
     if len(options.sources) == 0: sources = sorted(glob('config/*.txt'))
     else: sources = options.sources
     if len(sources) == 0 and not exists('config'):
@@ -76,10 +153,11 @@ def main(args=None):
         return 1
     elif not options.silent:
         preamble = 'NOT ' if options.testing else ''
-        print('%swriting %d json files into %s/ folder' % (preamble, len(sources), 'config'))
+        print('%swriting %d json files into %s/ folder' % (preamble, len(sources), config.data_dir))
     result = 0
+    if not options.testing and not exists(config.data_dir): mkdir(config.data_dir)
     for source in sources:
-        try: process(source)
+        try: process(source, join(config.data_dir, '%s%s' % (splitext(basename(source))[0], '.json')))
         except ConfigError as e:
             print('**error: %s' % e, file=stderr)
             result = 1
@@ -197,31 +275,30 @@ def create_configuration_file(path, content):
 def create_values_file(path, content):
     create_configuration_file(path, content)
     
-def process(path):
+def process(path, destination_path):
     if not path.endswith('.txt'):
         raise ConfigError('Not a text file: %s' % path, None, None, None)
     if basename(path) == 'config.txt':
-        process_config_file(path)
+        process_config_file(path, destination_path)
     elif basename(path).endswith('_values.txt'):
-        process_values_file(path)
+        process_values_file(path, destination_path)
     elif basename(path).endswith('_patterns.txt'):
-        process_patterns_file(path)
+        process_patterns_file(path, destination_path)
     else:
         raise ConfigError('unrecognized configuration file', path, None, None)
         
-def process_config_file(path):
+def process_config_file(path, destination_path):
     '''
     Reads a config.txt file and writes config.json
     '''
     if options.verbose: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
         data = process_config_content(file, path)
-    output_path = splitext(path)[0] + '.json'
     if options.verbose:
         preamble = 'NOT ' if options.testing else ''
-        print('%swriting %s' % (preamble, output_path))
+        print('%swriting %s' % (preamble, destination_path))
     if options.testing: return
-    with open(output_path, 'w', encoding="utf-8") as file:
+    with open(destination_path, 'w', encoding="utf-8") as file:
         # note that ensure_ascii=False == "leave emoji as emoji"
         file.write(json.dumps(data, indent=4, ensure_ascii=False))
 
@@ -242,19 +319,18 @@ def process_config_content(lines, filename=None):
         config[key] = value
     return config
     
-def process_values_file(path):
+def process_values_file(path, destination_path):
     '''
     Reads a type_values.txt or status_values.txt file and writes the corresponding json file.
     '''
     if options.verbose: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
         data = process_tag_content(file, path)
-    output_path = splitext(path)[0] + '.json'
     if options.verbose:
         preamble = 'NOT ' if options.testing else ''
-        print('%swriting %s' % (preamble, output_path))
+        print('%swriting %s' % (preamble, destination_path))
     if options.testing: return
-    with open(output_path, 'w', encoding="utf-8") as file:
+    with open(destination_path, 'w', encoding="utf-8") as file:
         # note that ensure_ascii=False == "leave emoji as emoji"
         file.write(json.dumps(data, indent=4, ensure_ascii=False))
 
@@ -346,19 +422,18 @@ def process_tag_content(lines, path=None):
         
     return tags
     
-def process_patterns_file(path):
+def process_patterns_file(path, destination_path):
     '''
     Reads a type_patterns.txt or status_patterns.txt file and writes the corresponding json file.
     '''
     if options.verbose: print('reading %s' % path)
     with open(path, encoding="utf-8") as file:
         data = process_patterns_content(file, path)
-    output_path = splitext(path)[0] + '.json'
     if options.verbose:
         preamble = 'NOT ' if options.testing else ''
-        print('%swriting %s' % (preamble, output_path))
+        print('%swriting %s' % (preamble, destination_path))
     if options.testing: return
-    with open(output_path, 'w', encoding="utf-8") as file:
+    with open(destination_path, 'w', encoding="utf-8") as file:
         file.write(json.dumps(data, indent=4, ensure_ascii=False))
         
 def process_patterns_content(content, path):

@@ -7,7 +7,7 @@ describes your projects.
 from argparse import ArgumentParser
 from collections import OrderedDict
 from glob import glob
-from os.path import basename, dirname, exists, join
+from os.path import basename, dirname, exists, expanduser, join
 from os import mkdir
 from sys import argv, exit, stderr
 from time import localtime, strftime, strptime
@@ -17,8 +17,6 @@ import subprocess
 
 from configure import preflight as preflight_configure, main as main_configure
 from scan import Config, preflight as preflight_scan, main as main_scan
-
-CONFIG_FILE_PATH = join('config', 'config.json')
 
 options = None
 def make_parser():
@@ -65,14 +63,13 @@ class Library:
             self.read_all()
         
     def read_all(self):
-        self.read_config(CONFIG_FILE_PATH)
-        
-        config_dir = dirname(CONFIG_FILE_PATH)
         data_dir = config.data_dir
-        for path in sorted(glob(join(config_dir, '*_values.json'))):
+        self.read_config(join(data_dir, 'config.json'))
+        
+        for path in sorted(glob(join(data_dir, '*_values.json'))):
             self.read_iconic_fields(path)
             
-        bucket_files = sorted(filter(lambda d: basename(d) != 'library.json', glob(join(data_dir, '*.json'))))
+        bucket_files = sorted(filter(lambda d: basename(d) != 'library.json', glob(join(data_dir, 'buckets/*.json'))))
         if len(bucket_files) == 0:
             print('**error: no data files found in %s' % data_dir, file=stderr)
         for path in bucket_files:
@@ -180,8 +177,8 @@ class Builder:
         self.failures = 0
         
     def build_all(self):
-        template_dir = config.template_dir
-        website_dir = config.website_dir
+        template_dir = expanduser(config.template_dir)
+        website_dir = expanduser(config.website_dir)
         templates = sorted(glob(join(template_dir, '*')))
         if len(templates) == 0:
             print('**error: no template files found in %s' % template_dir, file=stderr)
@@ -198,7 +195,8 @@ class Builder:
             if options.verbose: print('mkdir %s' % website_dir)
             mkdir(website_dir)
             
-        data_path = join(config.data_dir, 'library.json')
+        data_dir = expanduser(config.data_dir)
+        data_path = join(data_dir, 'library.json')
         command = ['jinja2', template_path, data_path]
         if options.debug: print(' '.join(command))
         
@@ -223,11 +221,12 @@ def preflight(options):
 def main(args=None):
     global options
     global config
-    config = Config(CONFIG_FILE_PATH)
+    config = Config()
     options = make_parser().parse_args(args)
     lib = Library()
     lib.read_all()
-    lib.write(join(config.data_dir, 'library.json'))
+    data_dir =  expanduser(config.data_dir)
+    lib.write(join(data_dir, 'library.json'))
     builder = Builder()
     count = builder.build_all()
     if not options.silent: print('updated %d files in %s' % (count, config.website_dir))

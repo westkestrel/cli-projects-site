@@ -1,5 +1,5 @@
 import unittest
-from os.path import join
+from os.path import expanduser, join
 from scan import config, Config, PatternRuleGroup, PatternRule, Normalizer, Folder, TestableFolder, Project, Library
 
 class TestConfig(unittest.TestCase):
@@ -48,7 +48,7 @@ class TestNormalizer(unittest.TestCase):
 class TestFolder(unittest.TestCase):
 
     def test_testable_folder(self):
-        root = config.projects_root_dir
+        root = expanduser(config.projects_root_dir)
         path = '2026/MyProject'
         f = TestableFolder(path, {
             '2026/MyProject': [10, 20],
@@ -67,21 +67,23 @@ class TestFolder(unittest.TestCase):
 
     def test_init(self):
         self.assertNotEqual(config.projects_root_dir, '')
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         f = Folder(path)
-        self.assertEqual(f.rootpath, config.projects_root_dir)
+        self.assertEqual(f.rootpath, root)
         self.assertEqual(f.abspath, path)
         self.assertEqual(f.relpath, '2026/MyProject')
         
     def test_scan(self):
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         day = 60*60*24
         f = TestableFolder(path, {
             '2026/MyProject': [day * 5, day * 5],
             '2026/MyProject/README.md': [day * 6, day * 10],
         })
         d = f.scan_for_project_metadata()
-        self.assertEqual(d['abspath'], join(config.projects_root_dir, '2026/MyProject'))
+        self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
@@ -93,8 +95,8 @@ class TestFolder(unittest.TestCase):
 class TestProject(unittest.TestCase):
 
     def test_init_in_project_root(self):
-        r = config.projects_root_dir
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         p = Project(path)
         self.assertEqual(p.abspath, path)
         self.assertEqual(p.relpath, '2026/MyProject')
@@ -107,7 +109,8 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.get_bucket_name(), '2026')
         
     def test_scan_filenames_no_glob_case(self):
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         f = TestableFolder(path, {
             '2026/MyProject': [0, 0],
             '2026/MyProject/README.md': [0, 0],
@@ -125,7 +128,8 @@ class TestProject(unittest.TestCase):
         })
 
     def test_scan_filenames_glob_case(self):
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         f = TestableFolder(path, {
             '2026/MyProject': [0, 0],
             '2026/MyProject/README.md': [0, 0],
@@ -143,7 +147,8 @@ class TestProject(unittest.TestCase):
         })
 
     def test_scan_filenames_no_match_case(self):
-        path = join(config.projects_root_dir, '2026/MyProject')
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
         f = TestableFolder(path, {
             '2026/MyProject': [0, 0],
             '2026/MyProject/README.md': [0, 0],
