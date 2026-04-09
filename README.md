@@ -45,3 +45,19 @@ data: data
 output: ~/Sites/projects
 ```
 
+## The Website
+
+### Types and Statuses
+
+The first section of the generated website lists the possible project types and project
+status.  The values are organized into groups with icons (as described by the
+*XXX_values.txt* files in the *config/* folder), and clicking a group will toggle the
+visibility of matching projects in the table below. Command-clicking will toggle the
+visibility of all non-matching projects.
+
+### Projects
+
+The second section of the website contains a table that lists all of the projects in
+reverse chronological order (i.e., newest projects on top).  The type and status group
+icons appear in a project row, and hovering over the icons will bring up a tooltip that
+names the specific type or status.
