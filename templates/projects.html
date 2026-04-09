@@ -18,12 +18,12 @@
 <tr class="project {{ project.css_class }}">
   <td class="date">{{ project.completed | default(project.abandoned) | default(project.date) | default(project.commenced) }}</td>
   {% if project.type %}
-  <td class="type" title="{{ project.type }}">{{ icons.type[project.type] }}</td>
+  <td class="type" title="{{ project.type }}">{{ icons.type[project.type] | default(icons.type.Unclassified) }}</td>
   {% else %}
   <td class="type" title="None">{{ icons.type['None'] }}</td>
   {% endif %}
   {% if project.status %}
-  <td class="status" title="{{ project.status }}">{{ icons.status[project.status] }}</td>
+  <td class="status" title="{{ project.status }}">{{ icons.status[project.status] | default(icons.status.Unclassified) }}</td>
   {% else %}
   <td class="status" title="None">{{ icons.status['None'] }}</td>
   {% endif %}

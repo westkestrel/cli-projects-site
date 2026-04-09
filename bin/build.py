@@ -58,6 +58,9 @@ def make_parser():
 class Library:
     def __init__(self, should_read_all=True):
         self.root = OrderedDict()
+        self.unclassified_types = set()
+        self.unclassified_statuses = set()
+
         if should_read_all:
             self.read_all()
         
@@ -74,6 +77,8 @@ class Library:
             print('**error: no data files found in %s' % data_dir, file=stderr)
         for path in bucket_files:
             self.read_bucket(path)
+        
+        self.process_unclassified_values()
             
     def read_config(self, path, content=None):
         '''
@@ -104,13 +109,13 @@ class Library:
             
         data = json.load(content, object_pairs_hook=OrderedDict)
         capitalized_field_name = field_name[0].upper() + field_name[1:]
-        data.append(OrderedDict([('name', 'No %s' % capitalized_field_name), ('icon', '🚫')]))
         icons = OrderedDict()
         for group in data:
             names = [group['name']] if 'name' in group else group['names']
             for name in names:
                 icons[name] = group['icon']
         icons['None'] = '🚫'
+        icons['Unclassified'] = '🐟'
         self.root['iconic_fields'][field_name] = data
         self.root['icons'][field_name] = icons
         
@@ -124,6 +129,8 @@ class Library:
             self.process_bucket(bucket_name, file)
         
     def process_bucket(self, bucket_name, content):
+        if 'unclassified' not in self.root:
+            self.root['unclassified'] = OrderedDict() # we want this above the buckets in the JSON
         if 'buckets' not in self.root:
             self.root['buckets'] = OrderedDict()
             
@@ -135,12 +142,30 @@ class Library:
                     except ValueError:
                         date = strptime(project[field], '%B %d, %Y')
                     project[field] = strftime('%d-%b-%Y', date)
-                project_type = project['type'] if project['type'] != None else 'no-type'
-                project_status = project['status'] if project['status'] != None else 'no-status'
-                type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
-                status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
-                project['css_class'] = ' '.join([type_class, status_class]).strip()
+            for field, value in list(project.items()):
+                if value == 'None':
+                    project[field] = None
+            project_type = project['type'] if project['type'] != None else 'no-type'
+            project_status = project['status'] if project['status'] != None else 'no-status'
+            type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
+            status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
+            project['css_class'] = ' '.join([type_class, status_class]).strip()
+            try: type_icons = self.root['icons']['type']
+            except KeyError: type_icons = {}
+            try: status_icons = self.root['icons']['status']
+            except KeyError: status_icons = {}
+            if project_type not in type_icons:
+                self.unclassified_types.add(project_type)
+            if project_status not in status_icons:
+                self.unclassified_statuses.add(project_status)
         self.root['buckets'][bucket_name] = data
+        
+    def process_unclassified_values(self):
+        self.root['unclassified'] = OrderedDict()
+        if 'no-type' in self.unclassified_types: self.unclassified_types.remove('no-type')
+        if 'no-status' in self.unclassified_statuses: self.unclassified_statuses.remove('no-status')
+        self.root['unclassified']['type'] = sorted(self.unclassified_types)
+        self.root['unclassified']['status'] = sorted(self.unclassified_statuses)
         
     def write(self, path):
         if options.verbose:

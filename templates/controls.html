@@ -12,6 +12,22 @@
                 </label>
             </li>
             {% endfor %}
+            {% if unclassified[field_name] %}
+            <li>
+                <input type="checkbox" }}"/>
+                <label>
+                    <span class="icon">{{ icons[field_name].Unclassified }}</span>
+                    <span class="text">{{ unclassified[field_name] | join(', ') }}</span>
+                </label>
+            </li>
+            {% endif %}
+            <li>
+                <input type="checkbox" }}"/>
+                <label>
+                    <span class="icon">{{ icons[field_name].None }}</span>
+                    <span class="text">No {{ field_name | capitalize }}</span>
+                </label>
+            </li>
         </ul>
         {% if field_name == 'status' %}
         <h2>Meta</h2>

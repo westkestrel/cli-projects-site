@@ -33,16 +33,13 @@ class TestLibrary(unittest.TestCase):
         '''.replace('\n        ', '').strip()))
         self.assertEqual(lib.root['icons']['status'], {
             'Abandoned': 'X',
-            'No Status': '🚫',
             'None': '🚫',
+            'Unclassified': '🐟',
         })
         self.assertEqual(lib.root['iconic_fields']['status'], [{
             'name': 'Abandoned',
             'icon': 'X',
             'description': 'Not working, but not under development either',
-        }, {
-            'name': 'No Status',
-            'icon': '🚫',
         }])
     
     def test_bucket(self):
