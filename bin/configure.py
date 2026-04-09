@@ -163,9 +163,9 @@ def create_configuration_folder(path):
         ▶️ Active: Under active development
         ⏸️ Paused: Briefly paused due to competing priorities
         📸 Snapshot (Project is open-ended, and this is a copy at a particular point in time)
-        🟡 Unstable (aka Broken): Paused indefinitely and not in a functional state
-        🟢 Stable: Paused indefinitely
-        ✅ Complete: Project is complete
+        🟡 Unstable (aka Broken): Paused indefinitely and not currently functional
+        🟢 Stable: Paused indefinitely in a usable state
+        ✅ Completed: Has accomplished its objectives
         🎁 Delivered: Delivered to a client
         💀 Abandoned: Abandoned after a fairly substantial investment
         🪦 Obsolete: Superceded by a newer version

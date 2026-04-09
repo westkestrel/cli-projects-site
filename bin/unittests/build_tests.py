@@ -54,7 +54,7 @@ class TestLibrary(unittest.TestCase):
                     "completed": "2026/03/15",
                     "newest_file": "README.md",
                     "type": "Webapp",
-                    "status": "Complete"
+                    "status": "Completed"
                 }
             ]
         '''.replace('\n        ', '').strip()))
@@ -67,6 +67,6 @@ class TestLibrary(unittest.TestCase):
             'completed': '15-Mar-2026',
             'newest_file': 'README.md',
             'type': 'Webapp',
-            'status': 'Complete',
-            'css_class': 'webapp complete',
+            'status': 'Completed',
+            'css_class': 'webapp completed',
         }])
