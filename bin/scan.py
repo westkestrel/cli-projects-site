@@ -148,7 +148,7 @@ class Normalizer:
         self.aliases_by_key = OrderedDict()
         self.known_values_by_key = OrderedDict()
         self.found_values_by_key = OrderedDict()
-        self.date_fields = set(['created', 'commenced', 'completed', 'paused', 'resumed', 'abandoned'])
+        self.date_fields = set(['created', 'commenced', 'concluded', 'completed', 'paused', 'resumed', 'abandoned'])
         self.months = {
             'jan': '01',
             'feb': '02',
@@ -261,7 +261,7 @@ class Folder:
         newest, timestamp = self.get_newest_file(self.abspath)
         if newest != None: newest = newest[len(self.abspath) + 1: ]
         if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
-        data['completed'] = self.normalizer.date(timestamp)
+        data['concluded'] = self.normalizer.date(timestamp)
         data['newest_file'] = newest
         data['type'] = None
         data['status'] = None
@@ -387,7 +387,7 @@ class Project:
     stop date, project type, project status, etc.
     '''
     
-    DATE_KEYS = set(['date', 'commenced', 'completed', 'abandoned', 'paused', 'resumed'])
+    DATE_KEYS = set(['date', 'commenced', 'concluded', 'completed', 'abandoned', 'paused', 'resumed'])
     STATUS_KEYS = set(['completed', 'abandoned', 'paused', 'resumed'])
     
     def __init__(self, path, folder=None, normalizer=None, type_patterns_by_key=None):

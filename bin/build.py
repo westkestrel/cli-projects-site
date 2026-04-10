@@ -143,7 +143,7 @@ class Library:
             
         data = json.load(content, object_pairs_hook=OrderedDict)
         for project in data:
-            for field in ['commenced', 'completed', 'abandoned', 'date']:
+            for field in ['commenced', 'concluded', 'completed', 'abandoned', 'date']:
                 if field in project:
                     try: date = strptime(project[field], '%Y/%m/%d')
                     except ValueError:
