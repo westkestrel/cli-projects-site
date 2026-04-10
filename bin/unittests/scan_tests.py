@@ -87,7 +87,7 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
-        self.assertEqual(d['commenced'], '1970/01/05')
+        self.assertEqual(d['created'], '1970/01/05')
         self.assertEqual(d['last_touched'], '1970/01/10')
         self.assertEqual(d['last_touched_file'], 'README.md')
         self.assertEqual(d['inferred_type'], None)

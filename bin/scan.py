@@ -257,7 +257,7 @@ class Folder:
         data['name'] = basename(self.abspath)
         data['abspath'] = self.abspath
         data['relpath'] = self.relpath
-        data['commenced'] = self.normalizer.date(self.get_ctime(self.abspath))
+        data['created'] = self.normalizer.date(self.get_ctime(self.abspath))
         last_touched_file, timestamp = self.get_last_touched_file(self.abspath)
         if last_touched_file != None: last_touched_file = last_touched_file[len(self.abspath) + 1: ]
         if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
