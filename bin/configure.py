@@ -3,7 +3,7 @@
 Reads the .txt files in the config directory and writes out .json files.
 '''
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections import OrderedDict
 from os.path import basename, exists, expanduser, join, splitext
 from os import getcwd, mkdir
@@ -15,8 +15,11 @@ import re
 options = None
 config = None
 
-def make_parser():
-    parser = ArgumentParser(description=__doc__)
+def make_parser(description=__doc__, suppress_sources=False):
+    '''
+    Create an argparse.ArgumentsParser instance with script-appropriate arguments.
+    '''
+    parser = ArgumentParser(description=description, formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument('-s', '--silent',
         dest='silent', action='store_const',
         const=True,
@@ -32,11 +35,12 @@ def make_parser():
         const=True,
         default=False,
         help='read and process source files, but do not write output files')
-    parser.add_argument(
-        dest='sources', action='store',
-        default=list(),
-        nargs="*",
-        help='process SOURCES rather than config/*.txt')
+    if not suppress_sources:
+        parser.add_argument(
+            dest='sources', action='store',
+            default=list(),
+            nargs="*",
+            help='process SOURCES rather than config/*.txt')
     return parser
     
 class ConfigError(Exception):

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 '''
-Scans the project-root folder for README files, reads them, and updates
-(or creates) project-description text files in the data data folder.
+Scans your project folders
+    ~/Projects/*20??/* (e.g., '~/Projects/2026/My Great Website')
+for metadata in README (and other) files and creates project-description JSON files in
+the data/buckets/ folder.
 '''
 
 from argparse import ArgumentParser
@@ -16,37 +18,28 @@ import json
 import re
 import subprocess
 
-from configure import Config, preflight as preflight_configure, main as main_configure
+from configure import Config, preflight as preflight_configure, main as main_configure, make_parser as make_configure_parser
     
 config = None
 options = None
-def make_parser():
-    parser = ArgumentParser(description=__doc__)
+def make_parser(description=__doc__, suppress_sources=False):
+    bucket_dir = join(join(config.data_dir, 'buckets'), '')
+    projects = list(map(lambda g: join(config.projects_root_dir, g), re.split(r'[\s,]+', config.projects)))
+    description = description.replace('data/buckets/', bucket_dir)
+    description = re.sub('.*~/Projects.*\n', '    ' + '\n    '.join(projects) + '\n', description)
+    parser = make_configure_parser(description=description, suppress_sources=True)
     parser.add_argument('-k', '--skip-preflight',
         dest='skip_preflight', action='store_const',
         const=True,
         default=False,
         help='do *not* first invoke configure.py; just do the scan')
-    parser.add_argument('-s', '--silent',
-        dest='silent', action='store_const',
-        const=True,
-        default=False,
-        help='produce less output')
-    parser.add_argument('-v', '--verbose',
-        dest='verbose', action='store_const',
-        const=True,
-        default=False,
-        help='produce more output')
-    parser.add_argument('-t', '--test',
-        dest='testing', action='store_const',
-        const=True,
-        default=False,
-        help='read and process source files, but do not write output files')
-    parser.add_argument(
-        dest='sources', action='store',
-        default=list(),
-        nargs="*",
-        help='process SOURCES rather than %s' % config['projects_root_dir'])
+    if not suppress_sources:
+        parser.add_argument(
+            dest='sources', action='store',
+            default=list(),
+            nargs="*",
+            metavar='project_paths',
+            help='process the given folders rather than the folders described above')
     return parser
     
 class FileError(Exception):
@@ -629,11 +622,10 @@ class Library:
             
         if not options.silent: print('writing %d json files into %s/ folder' % (len(self.buckets), bucket_dir))
         for bucket_name in sorted(self.buckets.keys()):
-            self.write_bucket(bucket_dir, bucket_name, self.buckets[bucket_name])
+            self.write_bucket(bucket_dir, join(bucket_dir, '%s.json' % bucket_name), self.buckets[bucket_name])
             
-    def write_bucket(self, bucket_dir, bucket_name, projects):
+    def write_bucket(self, bucket_dir, path, projects):
         data = list(map(lambda p: p.metadata, projects))
-        path = join(bucket_dir, '%s.json' % bucket_name)
         if options.testing:
             print('NOT writing %s' % path)
             return

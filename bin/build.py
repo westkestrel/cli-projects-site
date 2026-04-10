@@ -16,41 +16,25 @@ import re
 import subprocess
 
 from configure import preflight as preflight_configure, main as main_configure
-from scan import Config, preflight as preflight_scan, main as main_scan
+from scan import Config, preflight as preflight_scan, main as main_scan, make_parser as make_scan_parser
 
 options = None
-def make_parser():
-    parser = ArgumentParser(description=__doc__)
-    parser.add_argument('-k', '--skip-preflight',
-        dest='skip_preflight', action='store_const',
-        const=True,
-        default=False,
-        help='do *not* first invoke scan.py; just build the website')
-    parser.add_argument('-s', '--silent',
-        dest='silent', action='store_const',
-        const=True,
-        default=False,
-        help='produce less output')
-    parser.add_argument('-v', '--verbose',
-        dest='verbose', action='store_const',
-        const=True,
-        default=False,
-        help='produce more output')
+def make_parser(description=__doc__):
+    '''
+    Create an argparse.ArgumentsParser instance with script-appropriate arguments.
+    '''
+    parser = make_scan_parser(description, suppress_sources=True)
+    buckets = join(config.data_dir, 'buckets.json')
     parser.add_argument('-g', '--debug',
         dest='debug', action='store_const',
         const=True,
         default=False,
         help='output the jinja2 commands')
-    parser.add_argument('-t', '--test',
-        dest='testing', action='store_const',
-        const=True,
-        default=False,
-        help='read and process source files, but do not write output files')
     parser.add_argument(
         dest='sources', action='store',
         default=list(),
         nargs="*",
-        help='process SOURCES rather than data/*.json')
+        help='process SOURCES rather than the files listed in %s' % buckets)
     return parser
     
 class Library:
@@ -70,12 +54,16 @@ class Library:
             self.read_iconic_fields(path)
             
         bucket_list_path = join(expanduser(config.data_dir), 'buckets.json')
-        bucket_names = self.read_bucket_list(bucket_list_path)
-        if len(bucket_names) == 0:
+        if len(options.sources) != 0:
+            bucket_paths = options.sources
+        else:
+            bucket_paths = self.read_bucket_list(bucket_list_path)
+        if len(bucket_paths) == 0:
             print('**error: no buckets found in %s' % (bucket_list_path), file=stderr)
-        for bucket_name in bucket_names:
-            bucket_path = join(join(expanduser(config.data_dir), 'buckets'), bucket_name) + '.json'
-            self.read_bucket(bucket_path)
+        for path in bucket_paths:
+            if '/' not in path:
+                path = join(join(expanduser(config.data_dir), 'buckets'), path) + '.json'
+            self.read_bucket(path)
         
         self.process_unclassified_values()
             
@@ -253,6 +241,7 @@ def main(args=None):
     if not options.silent: print('updated %d files in %s' % (count, config.website_dir))
     
 if __name__ == '__main__':
+    config = Config()
     options = make_parser().parse_args()
     if not options.skip_preflight:
         status = preflight_configure(options)
