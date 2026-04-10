@@ -263,8 +263,8 @@ class Folder:
         if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
         data['last_touched'] = self.normalizer.date(timestamp)
         data['last_touched_file'] = last_touched_file
-        data['type'] = None
-        data['status'] = None
+        data['inferred_type'] = None
+        data['inferred_status'] = None
         return data
         
     def exists(self, path):
@@ -437,9 +437,10 @@ class Project:
         filenames = sorted(filenames)
         filenames = [basename(project_dir)] + filenames
         for key, pattern_group in self.type_patterns_by_key.items():
+            inferred_key = 'inferred_%s' % key
             match = pattern_group.match_any(filenames)
             if match != None:
-                data[key] = match
+                data[inferred_key] = match
         if apply: self.apply(data)
         return data
         
@@ -496,18 +497,21 @@ class Project:
                 
     def __getattr__(self, key):
         try:
-            return self.metadata[key]
+            return self[self.normalizer.key(key)]
         except KeyError:
-            try:
-                return self.metadata[self.normalizer.key(key)]
-            except KeyError:
-                return None
+            return None
                 
     def __getitem__(self, key):
         try:
             return self.metadata[key]
         except KeyError:
-            return self.metadata[self.normalizer.key(key)]
+            key = self.normalizer.key(key)
+            try:
+                return self.metadata[key]
+            except KeyError:
+                if not key.startswith('inferred_'):
+                    inferred_key = 'inferred_%s' % key
+                return self.metadata[inferred_key]
         
     def __setitem__(self, key, value):
         key, value = self.normalizer.item(key, value)

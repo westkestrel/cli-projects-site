@@ -90,8 +90,8 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['commenced'], '1970/01/05')
         self.assertEqual(d['last_touched'], '1970/01/10')
         self.assertEqual(d['last_touched_file'], 'README.md')
-        self.assertEqual(d['type'], None)
-        self.assertEqual(d['status'], None)
+        self.assertEqual(d['inferred_type'], None)
+        self.assertEqual(d['inferred_status'], None)
         
 class TestProject(unittest.TestCase):
 
@@ -125,7 +125,7 @@ class TestProject(unittest.TestCase):
         p.type_patterns_by_key['type'] = group
         data = p.scan_filenames(path)
         self.assertEqual(data, {
-            'type': 'Web App',
+            'inferred_type': 'Web App',
         })
 
     def test_scan_filenames_glob_case(self):
@@ -144,7 +144,7 @@ class TestProject(unittest.TestCase):
         p.type_patterns_by_key['type'] = group
         data = p.scan_filenames(path)
         self.assertEqual(data, {
-            'type': 'Script',
+            'inferred_type': 'Script',
         })
 
     def test_scan_filenames_no_match_case(self):

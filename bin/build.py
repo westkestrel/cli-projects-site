@@ -143,6 +143,16 @@ class Library:
             
         data = json.load(content, object_pairs_hook=OrderedDict)
         for project in data:
+        
+            # if we have inferred_x but no x, then set x = inferred_x
+            if 'created' in project and 'commenced' not in project:
+                project['commenced'] = project['created']
+            for field in list(project.keys()):
+                if field.startswith('inferred_'):
+                    true_field = field[9:]
+                    if true_field not in project or project[true_field] == None:
+                        project[true_field] = project[field]
+                        
             for field in ['commenced', 'last_touched', 'completed', 'abandoned', 'date']:
                 if field in project:
                     try: date = strptime(project[field], '%Y/%m/%d')
