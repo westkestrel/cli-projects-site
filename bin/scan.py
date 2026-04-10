@@ -258,11 +258,11 @@ class Folder:
         data['abspath'] = self.abspath
         data['relpath'] = self.relpath
         data['commenced'] = self.normalizer.date(self.get_ctime(self.abspath))
-        newest, timestamp = self.get_newest_file(self.abspath)
-        if newest != None: newest = newest[len(self.abspath) + 1: ]
+        last_touched_file, timestamp = self.get_last_touched_file(self.abspath)
+        if last_touched_file != None: last_touched_file = last_touched_file[len(self.abspath) + 1: ]
         if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
         data['last_touched'] = self.normalizer.date(timestamp)
-        data['newest_file'] = newest
+        data['last_touched_file'] = last_touched_file
         data['type'] = None
         data['status'] = None
         return data
@@ -292,11 +292,11 @@ class Folder:
         try: return getmtime(path if path != None else self.abspath)
         except FileNotFoundError: return None
         
-    def get_newest_file(self, path=None):
+    def get_last_touched_file(self, path=None):
         '''
-        Returns the path nd timestamp of the newest file within the given folder.
+        Returns the path nd timestamp of the last_touched_file file within the given folder.
         '''
-        newest = None
+        last_touched_file = None
         timestamp = None
         for root, dirs, files in self.walk(path if path != None else self.abspath):
             dirs[0:len(dirs)] = sorted(filter(lambda d: not re.match(config.skip_regex, d), dirs))
@@ -304,9 +304,9 @@ class Folder:
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
                 if  subtime != None and (timestamp == None or subtime > timestamp):
-                    newest = subpath
+                    last_touched_file = subpath
                     timestamp = subtime
-        return newest, timestamp
+        return last_touched_file, timestamp
         
     def listdir(self, path):
         '''

@@ -52,7 +52,7 @@ class TestLibrary(unittest.TestCase):
                     "relpath": "2026/My Project",
                     "commenced": "2026/02/14",
                     "completed": "2026/03/15",
-                    "newest_file": "README.md",
+                    "last_touched_file": "README.md",
                     "type": "Webapp",
                     "status": "Completed"
                 }
@@ -65,7 +65,7 @@ class TestLibrary(unittest.TestCase):
             'relpath': '2026/My Project',
             'commenced': '14-Feb-2026', # note new date format
             'completed': '15-Mar-2026',
-            'newest_file': 'README.md',
+            'last_touched_file': 'README.md',
             'type': 'Webapp',
             'status': 'Completed',
             'css_class': 'webapp completed',

@@ -89,7 +89,7 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
         self.assertEqual(d['last_touched'], '1970/01/10')
-        self.assertEqual(d['newest_file'], 'README.md')
+        self.assertEqual(d['last_touched_file'], 'README.md')
         self.assertEqual(d['type'], None)
         self.assertEqual(d['status'], None)
         
