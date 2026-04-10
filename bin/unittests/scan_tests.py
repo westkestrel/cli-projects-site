@@ -42,7 +42,7 @@ class TestNormalizer(unittest.TestCase):
         n = Normalizer()
         self.assertEqual(n.item('Name', 'MyProject'), ('name', 'MyProject'))
         self.assertEqual(n.item('Commenced', '14-Feb-2026'), ('commenced', '2026/02/14'))
-        self.assertEqual(n.item('Concluded', '14-Feb-2026'), ('concluded', '2026/02/14'))
+        self.assertEqual(n.item('LastTouched', '14-Feb-2026'), ('last_touched', '2026/02/14'))
         self.assertEqual(n.item('Completed', '14-Feb-2026'), ('completed', '2026/02/14'))
         self.assertEqual(n.item('Abandoned', '14-Feb-2026'), ('abandoned', '2026/02/14'))
         
@@ -88,7 +88,7 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['commenced'], '1970/01/05')
-        self.assertEqual(d['concluded'], '1970/01/10')
+        self.assertEqual(d['last_touched'], '1970/01/10')
         self.assertEqual(d['newest_file'], 'README.md')
         self.assertEqual(d['type'], None)
         self.assertEqual(d['status'], None)
@@ -169,35 +169,33 @@ class TestProject(unittest.TestCase):
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
         *Commenced: 2026/02/14*
-        *Concluded: 15-Mar-2026*
+        *Completed: 15-Mar-2026*
         *Type: Video*
-        *Status: Abandoned*
         '''.split('\n'))
         self.assertEqual(data, {
             'commenced': '2026/02/14',
-            'concluded': '2026/03/15',
+            'completed': '2026/03/15',
+            'status': 'Completed',
             'type': 'Video',
-            'status': 'Abandoned',
         })
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'MyProject')
         self.assertEqual(p.commenced, '2026/02/14')
-        self.assertEqual(p.concluded, '2026/03/15')
+        self.assertEqual(p.completed, '2026/03/15')
         self.assertEqual(p.type, 'Video')
-        self.assertEqual(p.status, 'Abandoned')
+        self.assertEqual(p.status, 'Completed')
 
     def test_scan_readme_without_apply(self):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
         *Commenced: 2026/02/14*
-        *Concluded: 15-Mar-2026*
+        *Abandoned: 15-Mar-2026*
         *Type: Video*
-        *Status: Abandoned*
         '''.split('\n'), apply=False)
         self.assertEqual(data, {
             'commenced': '2026/02/14',
-            'concluded': '2026/03/15',
+            'abandoned': '2026/03/15',
             'type': 'Video',
             'status': 'Abandoned',
         })
@@ -228,14 +226,12 @@ class TestProject(unittest.TestCase):
         # My Great Project
         
         *Commenced: 2026/02/14*
-        *Concluded: 15-Mar-2026*
         '''
         p = Project('/2026/MyProject')
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'My Great Project')
         self.assertEqual(p.commenced, '2026/02/14')
-        self.assertEqual(p.concluded, '2026/03/15')
         self.assertEqual(p.status, None)
 
     def test_scan_aliased_values(self):
