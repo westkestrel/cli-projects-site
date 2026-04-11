@@ -62,7 +62,7 @@ class Library:
         if len(sources) == 0:
             print('**error: no buckets found in %s' % (bucket_list_path), file=stderr)
         for path in sources:
-            if '/' not in path:
+            if not path.endswith('.json'):
                 path = join(join(expanduser(config.data_dir), 'buckets'), path) + '.json'
             self.read_bucket(path)
         

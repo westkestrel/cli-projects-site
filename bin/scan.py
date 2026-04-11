@@ -395,7 +395,7 @@ class Project:
         
     def get_bucket_name(self):
         if self.relpath != None:
-            return dirname(self.relpath).replace('/', '--')
+            return dirname(self.relpath)
         else:
             return basename(dirname(self.abspath))
         
@@ -619,11 +619,11 @@ class Library:
         if not exists(data_dir) and not options.testing:
             if not options.silent:
                 print('mkdir -p "%s"' % data_dir)
-            mkdir(data_dir)
+            recursive_mkdir(data_dir)
         if not exists(bucket_dir) and not options.testing:
             if not options.silent:
                 print('mkdir -p "%s"' % bucket_dir)
-            mkdir(bucket_dir)
+            recursive_mkdir(bucket_dir)
             
         if not options.silent: print('writing %d json files into %s/ folder' % (len(self.buckets), bucket_dir))
         for bucket_name in sorted(self.buckets.keys()):
@@ -634,7 +634,10 @@ class Library:
         if options.testing:
             print('NOT writing %s' % path)
             return
+        bucketfile_dir = dirname(path)
+        if options.verbose and not exists(bucketfile_dir): print('mkdir -p %s' % bucketfile_dir)
         if options.verbose: print('writing %s' % path)
+        if not exists(bucketfile_dir): recursive_mkdir(bucketfile_dir)
         with open(path, 'w', encoding='utf-8') as file:
             if path.endswith('.json'):
                 json.dump(data, file, indent=4, ensure_ascii=False)
@@ -650,6 +653,12 @@ class Library:
         if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(list(self.buckets.keys()), file, indent=4, ensure_ascii=False)
+            
+def recursive_mkdir(path):
+    parent = dirname(path)
+    if parent != '' and parent != '/' and not exists(parent):
+        recursive_mkdir(parent)
+    mkdir(path)
             
 def preflight(options):
     '''
