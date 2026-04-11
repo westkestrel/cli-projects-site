@@ -746,6 +746,7 @@ class Library:
         Updates the library projects with the given metadata (a dictionary mapping
         relative project pathnames to dictionaries of key-value pairs).
         '''
+        if briefs == None: return
         root_dir = expanduser(config.projects_root_dir)
         data_dir = config.data_dir
         bucket_dir = join(data_dir, 'buckets')
@@ -895,10 +896,11 @@ def main(args=None):
             file=stderr,
         )
     
-    library.apply_briefs(library.read_briefs())
-        
     if options.update_briefs:
         library.write_briefs()
+    else:
+        library.apply_briefs(library.read_briefs())
+
     library.write_buckets() # e.g., 2020.json, 2021.json, 2022.json, etc.
     # If the user only rebuilt 2026.json, do not emit a library.json containing just that one name
     if not hasattr(options, 'scan_source') or len(options.scan_sources) == 0:
