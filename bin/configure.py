@@ -37,9 +37,10 @@ def make_parser(description=__doc__, suppress_sources=False):
         help='read and process source files, but do not write output files')
     if not suppress_sources:
         parser.add_argument(
-            dest='sources', action='store',
+            dest='config_sources', action='store',
             default=list(),
             nargs="*",
+            metavar='sources',
             help='process SOURCES rather than config/*.txt')
     return parser
     
@@ -145,10 +146,13 @@ def main(args=None):
     global options
     global config
     if __name__ == '__main__': options = make_parser().parse_args(args)
-    else: options, unknown = make_parser().parse_known_args(args)
+    else: options, unknown = make_parser(suppress_sources=True).parse_known_args(args)
     config = Config()
-    if len(options.sources) == 0: sources = sorted(glob('config/*.txt'))
-    else: sources = options.sources
+    
+    try: sources = options.config_sources
+    except AttributeError: sources = []
+    if len(sources) == 0: sources = sorted(glob('config/*.txt'))
+        
     if len(sources) == 0 and not exists('config'):
         offer_to_create_configuration_files('config')
         sources = sorted(glob('config/*.txt'))
