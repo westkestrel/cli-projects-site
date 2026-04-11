@@ -31,9 +31,10 @@ def make_parser(description=__doc__):
         default=False,
         help='output the jinja2 commands')
     parser.add_argument(
-        dest='sources', action='store',
+        dest='build_sources', action='store',
         default=list(),
         nargs="*",
+        metavar='sources',
         help='process SOURCES rather than the files listed in %s' % buckets)
     return parser
     
@@ -54,13 +55,13 @@ class Library:
             self.read_iconic_fields(path)
             
         bucket_list_path = join(expanduser(config.data_dir), 'buckets.json')
-        if len(options.sources) != 0:
-            bucket_paths = options.sources
-        else:
-            bucket_paths = self.read_bucket_list(bucket_list_path)
-        if len(bucket_paths) == 0:
+        try: sources = options.build_sources
+        except AttributeError: sources = []
+        if len(sources) == 0:
+            sources = self.read_bucket_list(bucket_list_path)
+        if len(sources) == 0:
             print('**error: no buckets found in %s' % (bucket_list_path), file=stderr)
-        for path in bucket_paths:
+        for path in sources:
             if '/' not in path:
                 path = join(join(expanduser(config.data_dir), 'buckets'), path) + '.json'
             self.read_bucket(path)
