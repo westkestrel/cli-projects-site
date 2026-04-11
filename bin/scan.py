@@ -23,11 +23,17 @@ from configure import Config, preflight as preflight_configure, main as main_con
 config = None
 options = None
 def make_parser(description=__doc__, suppress_sources=False):
+    briefs_dir = join(join(config.data_dir, 'briefs'), '')
     bucket_dir = join(join(config.data_dir, 'buckets'), '')
     projects = list(map(lambda g: join(config.projects_root_dir, g), re.split(r'[\s,]+', config.projects)))
     description = description.replace('data/buckets/', bucket_dir)
     description = re.sub('.*~/Projects.*\n', '    ' + '\n    '.join(projects) + '\n', description)
     parser = make_configure_parser(description=description, suppress_sources=True)
+    parser.add_argument('-b', '--update-briefs',
+        dest='update_briefs', action='store_const',
+        const=True,
+        default=False,
+        help='create/update summary files in %s folder' % briefs_dir)
     parser.add_argument('-k', '--skip-preflight',
         dest='skip_preflight', action='store_const',
         const=True,
@@ -209,7 +215,7 @@ class Normalizer:
         value = self.value(value, key)
         return key, value
         
-    def date(self, text):
+    def date(self, text, format='%Y/%m/%d'):
         '''
         Accepts date strings in a variety of formats (and integers and floats representing
         seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
@@ -217,7 +223,7 @@ class Normalizer:
         if text == None:
             return None
         if type(text) == int or type(text) == float:
-            return strftime('%Y/%m/%d', localtime(text))
+            return strftime(format, localtime(text))
             
         text = re.sub(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? *', '', text)
         match = re.match(r'(\d{1,2})-(\w{3,})-(\d{4})', text)
@@ -228,8 +234,12 @@ class Normalizer:
         if match:
             month, day, year = match.group(1, 2, 3)
             text = '%s/%s/%s' % (year, self.months[month.lower()[0:3]], day.rjust(2, '0'))
-        text = text.replace('-', '/')
-        return text[0:10]
+        text = text.replace('-', '/')[0:10]
+        
+        if format != '%Y/%m/%d':
+            text = strftime(format, stptime('%Y/%m/%d', text))
+        
+        return text
         
 class Folder:
     '''
@@ -612,14 +622,22 @@ class Library:
         project_path = dirname(path)
         project = self.get_project(path)
         project.scan_readme_file(path)
+                
+    def write_briefs(self):
+        data_dir = expanduser(config.data_dir)
+        briefs_dir = join(data_dir, 'briefs')
+        if not exists(briefs_dir) and not options.testing:
+            if not options.silent:
+                print('mkdir -p "%s"' % briefs_dir)
+            recursive_mkdir(briefs_dir)
+            
+        if not options.silent: print('writing %d text files into %s/ folder' % (len(self.buckets), briefs_dir))
+        for bucket_name in sorted(self.buckets.keys()):
+            self.write_bucket(briefs_dir, join(briefs_dir, '%s.txt' % bucket_name), self.buckets[bucket_name])
     
     def write_buckets(self):
         data_dir = expanduser(config.data_dir)
         bucket_dir = join(data_dir, 'buckets')
-        if not exists(data_dir) and not options.testing:
-            if not options.silent:
-                print('mkdir -p "%s"' % data_dir)
-            recursive_mkdir(data_dir)
         if not exists(bucket_dir) and not options.testing:
             if not options.silent:
                 print('mkdir -p "%s"' % bucket_dir)
@@ -653,6 +671,18 @@ class Library:
         if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(list(self.buckets.keys()), file, indent=4, ensure_ascii=False)
+            
+    FIELDS_EXCLUDED_FROM_BRIEF = set(['path', 'abspath', 'relpath'])
+    def write_project_text(self, project_dict, file):
+        '''
+        Writes out the project key-value pairs as plain text.  Note that the given
+        project is a dictionary, not an instance of the Project class.
+        '''
+        print('# %s' % project_dict['relpath'], file=file)
+        for key, value in project_dict.items():
+            if key not in self.FIELDS_EXCLUDED_FROM_BRIEF:
+                print('%s: %s' % (key, value), file=file)
+        print("", file=file)
             
 def recursive_mkdir(path):
     parent = dirname(path)
@@ -709,6 +739,8 @@ def main(args=None):
             unexpected_values),
             file=stderr,
         )
+    if options.update_briefs:
+        library.write_briefs()
     library.write_buckets() # e.g., 2020.json, 2021.json, 2022.json, etc.
     # If the user only rebuilt 2026.json, do not emit a library.json containing just that one name
     if not hasattr(options, 'scan_source') or len(options.scan_sources) == 0:
