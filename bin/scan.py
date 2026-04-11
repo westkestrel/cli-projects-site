@@ -13,7 +13,7 @@ from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import mkdir, listdir, walk
 from sys import argv, exit, stderr
-from time import localtime, strftime
+from time import localtime, strftime, strptime
 import json
 import re
 import subprocess
@@ -143,11 +143,13 @@ class Normalizer:
     '''
     Converts keys, values, and date strings to standard form
     '''
+
+    DATE_FIELDS = set(['created', 'commenced', 'last_touched', 'completed', 'paused', 'resumed', 'abandoned'])
+
     def __init__(self):
         self.aliases_by_key = OrderedDict()
         self.known_values_by_key = OrderedDict()
         self.found_values_by_key = OrderedDict()
-        self.date_fields = set(['created', 'commenced', 'last_touched', 'completed', 'paused', 'resumed', 'abandoned'])
         self.months = {
             'jan': '01',
             'feb': '02',
@@ -196,7 +198,7 @@ class Normalizer:
         except KeyError:
             pass
             
-        if key in self.date_fields:
+        if key in self.DATE_FIELDS:
             return self.date(text)
             
         try:
@@ -237,7 +239,7 @@ class Normalizer:
         text = text.replace('-', '/')[0:10]
         
         if format != '%Y/%m/%d':
-            text = strftime(format, stptime('%Y/%m/%d', text))
+            text = strftime(format, strptime(text, '%Y/%m/%d'))
         
         return text
         
@@ -681,6 +683,7 @@ class Library:
         print('# %s' % project_dict['relpath'], file=file)
         for key, value in project_dict.items():
             if key not in self.FIELDS_EXCLUDED_FROM_BRIEF:
+                if key in self.normalizer.DATE_FIELDS: value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
                 print('%s: %s' % (key, value), file=file)
         print("", file=file)
             
