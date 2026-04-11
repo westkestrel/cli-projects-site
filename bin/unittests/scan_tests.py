@@ -93,6 +93,62 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['inferred_type'], None)
         self.assertEqual(d['inferred_status'], None)
         
+    def test_scan_rcs_files(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/main.c': [0, 0],
+            '2026/MyProject/main.c,v': [0, 0],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['versioning'], 'rcs')
+        
+    def test_scan_rcs_folder(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/main.c': [0, 0],
+            '2026/MyProject/RCS': [0, 0],
+            '2026/MyProject/RCS/main.c,v': [0, 0],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['versioning'], 'rcs')
+        
+    def test_scan_cvs(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/main.c': [0, 0],
+            '2026/MyProject/CVS': [0, 0],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['versioning'], 'cvs')
+        
+    def test_scan_subversion(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/main.c': [0, 0],
+            '2026/MyProject/.subversion': [0, 0],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['versioning'], 'subversion')
+        
+    def test_scan_git(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        f = TestableFolder(path, {
+            '2026/MyProject': [0, 0],
+            '2026/MyProject/main.c': [0, 0],
+            '2026/MyProject/.git': [0, 0],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['versioning'], 'git')
+        
 class TestProject(unittest.TestCase):
 
     def test_init_in_project_root(self):

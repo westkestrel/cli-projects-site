@@ -268,15 +268,79 @@ class Folder:
         if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
         data['last_touched'] = self.normalizer.date(timestamp)
         data['last_touched_file'] = last_touched_file
+        self.add_rcs_metadata(data)
+        self.add_cvs_metadata(data)
+        self.add_subversion_metadata(data)
+        self.add_git_metadata(data)
         data['inferred_type'] = None
         data['inferred_status'] = None
         return data
+        
+    def add_rcs_metadata(self, data):
+        '''
+        RCS (Revision Control System) is one of the first revision-tracking packages.
+        We are unlikely to encounter any projects that use it, but will check.
+        '''
+        rcspath = join(self.abspath, 'RCS')
+        rcsglob = join(self.abspath, '*,v')
+        if not self.exists(rcspath) and len(self.glob(rcsglob)) == 0:
+            return
+        data['versioning'] = 'rcs'
+        
+    def add_cvs_metadata(self, data):
+        '''
+        CVS (Concurrent Versions System) is the most widely-useed revision-tracking
+        package circa 1990, so we will detect when it is being used by a project.
+        '''
+        cvspath = join(self.abspath, 'CVS')
+        if not self.exists(cvspath):
+            return
+        data['versioning'] = 'cvs'
+        
+    def add_subversion_metadata(self, data):
+        '''
+        Subversion is the most widely-useed revision-tracking package circa 2000,
+        so we will detect when it is being used by a project.
+        '''
+        svnpath = join(self.abspath, '.subversion')
+        if not self.exists(svnpath):
+            return
+        data['versioning'] = 'subversion'
+        
+    def add_git_metadata(self, data):
+        '''
+        Git is the most widely-useed revision-tracking package circa 2025,
+        so we will detect when it is being used by a project.
+        '''
+        gitpath = join(self.abspath, '.git')
+        if not self.exists(gitpath):
+            return
+        data['versioning'] = 'git'
+        configpath = join(gitpath, 'config')
+        if not self.exists(configpath):
+            return
+        next_url_is_origin = False
+        with open(configpath) as file:
+            for line in map(str.strip, file):
+                if line == '[remote "origin"]':
+                    next_url_is_origin = True
+                elif next_url_is_origin and line.startswith('url = '):
+                    next_url_is_origin = False
+                    data['git_origin'] = line[6:]
+                    try: data['git_host'] = re.match(r'[^@]+@([\w.-]+)', line[6:]).group(1)
+                    except AttributeError: pass # match failed
         
     def exists(self, path):
         '''
         Returns whether a file or folder exists at the given path.
         '''
         return exists(path)
+        
+    def glob(self, pattern):
+        '''
+        Returns the files that match a glob pattern.
+        '''
+        return glob(pattern)
         
     def get_ctime(self, path=None):
         '''
@@ -348,6 +412,14 @@ class TestableFolder(Folder):
             raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (path, self.rootpath))
         rpath = path[len(rootpath_slash):]
         return rpath in self.content
+        
+    def glob(self, pattern):
+        rootpath_slash = join(self.rootpath, '') # add trailing slash
+        if not pattern.startswith(self.rootpath):
+            raise ValueError('TestableFolder asked about a path (%s) not in the folder (%s)' % (pattern, self.rootpath))
+        pattern = pattern[len(rootpath_slash):]
+        regex = pattern.replace('.', '[.]').replace('?', '[^/]').replace('*', '[^/]*')
+        return list(filter(lambda p: re.match(regex, p), self.content.keys()))
         
     def get_ctime(self, path):
         rootpath_slash = join(self.rootpath, '') # add trailing slash
