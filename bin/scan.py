@@ -370,6 +370,8 @@ class Folder:
         for root, dirs, files in self.walk(path if path != None else self.abspath):
             dirs[0:len(dirs)] = sorted(filter(lambda d: not re.match(config.skip_regex, d), dirs))
             for file in sorted(filter(lambda f: not re.match(config.skip_regex, f), files)):
+                if re.match(r'^Icon\W?$', file): continue # a MacOS-specific filename containing a nonprintable character
+                if file == '.DS_Store': continue # a MacOS-specific file used by Finder
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
                 if  subtime != None and (timestamp == None or subtime > timestamp):
