@@ -35,7 +35,7 @@ def make_parser(description=__doc__, suppress_sources=False):
         help='do *not* first invoke configure.py; just do the scan')
     if not suppress_sources:
         parser.add_argument(
-            dest='sources', action='store',
+            dest='scan_sources', action='store',
             default=list(),
             nargs="*",
             metavar='project_paths',
@@ -607,9 +607,14 @@ class Library:
                 raise FileError('found more than one README file:\n%s' % '\n'.join(map(lambda f: join(root, f), files)))
             else:
                 project.scan(root, join(root, files[0]))
+                
+    def scan_readme_file(self, path):
+        project_path = dirname(path)
+        project = self.get_project(path)
+        project.scan_readme_file(path)
     
     def write_buckets(self):
-        data_dir = config.data_dir
+        data_dir = expanduser(config.data_dir)
         bucket_dir = join(data_dir, 'buckets')
         if not exists(data_dir) and not options.testing:
             if not options.silent:
@@ -631,8 +636,12 @@ class Library:
             return
         if options.verbose: print('writing %s' % path)
         with open(path, 'w', encoding='utf-8') as file:
-            json.dump(data, file, indent=4, ensure_ascii=False)
-            
+            if path.endswith('.json'):
+                json.dump(data, file, indent=4, ensure_ascii=False)
+            else:
+                for datum in data:
+                    self.write_project_text(datum, file)
+                
     def write_bucket_list(self):
         path = join(expanduser(config.data_dir), 'buckets.json')
         if options.testing:
@@ -662,22 +671,26 @@ def main(args=None):
     if __name__ == '__main__': options = make_parser().parse_args(args)
     else: options, unknown = make_parser().parse_known_args(args)
     
-    if len(options.sources) == 0:
-        sources = [config.projects_root_dir]
-    else:
-        sources = options.sources
+    try: sources = options.scan_sources
+    except AttributeError: sources = []
         
     library = Library()
     library.read_config_files()
     
     if not options.silent: print('scanning project folders...')
-    for source in sources:
-        source = expanduser(source)
-        if isdir(source):
-            if options.verbose: print('scanning %s/' % source)
-            library.scan_for_project_dirs(source)
-        else:
-            library.scan_readme_file(source)
+    if len(sources) > 0:
+        for source in map(expanduser, sources):
+            if isdir(source): library.walk_for_readme_files(source, deep=False)
+            else: library.scan_readme_file(source)
+    else:
+        for root in [config.projects_root_dir]:
+            root = expanduser(root)
+            if isdir(root):
+                if options.verbose: print('scanning %s/' % root)
+                library.scan_for_project_dirs(root)
+            else:
+                print('**error: %s is not a directory' % root, file=stderr)
+                continue
             
     for key, values in sorted(library.normalizer.found_values_by_key.items()):
         unexpected_values = ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
@@ -687,8 +700,10 @@ def main(args=None):
             unexpected_values),
             file=stderr,
         )
-    library.write_buckets()
-    library.write_bucket_list()
+    library.write_buckets() # e.g., 2020.json, 2021.json, 2022.json, etc.
+    # If the user only rebuilt 2026.json, do not emit a library.json containing just that one name
+    if not hasattr(options, 'scan_source') or len(options.scan_sources) == 0:
+        library.write_bucket_list() # e.g., library.json containing ['2020', '2021', ]
     return 0
     
 if __name__ == '__main__':
