@@ -144,9 +144,15 @@ class Library:
                         
             for field in ['commenced', 'last_touched', 'completed', 'abandoned', 'date']:
                 if field in project:
-                    try: date = strptime(project[field], '%Y/%m/%d')
-                    except ValueError:
-                        date = strptime(project[field], '%B %d, %Y')
+                    date = None
+                    for date_format in ['%Y/%m/%d', '%d-%B-%Y', '%d-%b-%Y', '%B %d, %Y']:
+                        try:
+                            date = strptime(project[field], date_format)
+                            break
+                        except ValueError:
+                            pass
+                    if date == None:
+                        raise ValueError('%s cannot be parsed as a date' % project[field])
                     project[field] = strftime('%d-%b-%Y', date)
             for field, value in list(project.items()):
                 if value == 'None':
