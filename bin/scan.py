@@ -688,7 +688,7 @@ class Library:
             files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
             project = self.get_project(project_path, create=True)
             if len(files) == 0:
-                if not options.silent: print('**warning: no README file found in %s' % root, file=stderr)
+                if options.verbose: print('**warning: no README file found in %s' % root, file=stderr)
                 project.scan(root, None)
             elif len(files) > 1:
                 raise FileError('found more than one README file:\n%s' % '\n'.join(map(lambda f: join(root, f), files)))
