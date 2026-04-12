@@ -142,12 +142,14 @@ visibility of all non-matching projects.
 ### Projects
 
 The second section of the website contains a table that lists all of the projects,
-grouped by containing folder.  The group folders are sorted in reverse order based
-on the **project** glob pattern (e.g., if projects is _20??/* Active/*_ then the
-active projects will be listed before the 2026 projects, which will be listed before
-the 2025 projects).
+grouped by containing folder (aka the *bucket* or *group*).  The groups are sorted in
+reverse order based on the **projects** glob pattern (e.g., if **projects** is _20??/* Active/*_
+then the active projects will be listed before the 2026 projects, which will be listed
+before the 2025 projects).
 
-Within a group, the projects are listed in reverse chronological order.
+Within a group, the projects are listed in a table in reverse chronological order. The
+table has columns for the project date (when it was finished, abandoned, or otherwise last
+modified), the project type and status, the project name, and the project description. 
+The type and status are represented by icons from te previous section, and hovering over
+them presents a tooltip with the type or status text.
 
-The type and status group icons appear in a project row, and hovering over the icons will
-bring up a tooltip that names the specific type or status.
