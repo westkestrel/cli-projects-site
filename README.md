@@ -69,14 +69,14 @@ status, creation and/or completion date, etc. Where does the project metadata co
 - **type** is inferred (if possible) from the presence of certain files (e.g., *.xcodeproj implies 'Application')
 - **status** is never inferred from the filesystem, and must be stated in a README or METADATA file
 
-Any `key: value` lines at the top of your project README (.md, .markdown, or .txt, with
-or without a leading underscore) are considered project metadata.
+Any `key: value` lines at the top of your project README (.md, .markdown, or .txt, with or
+without a leading underscore) are considered project metadata.
 
 The title of your README file (e.g., `# My Great Project`) is taken as the **name**,
 though this can be overridden by a `name: This is the real name` line in the file.
 
-The key-value pair `completed: <date>` will both capture the date and set the status to 'Completed'.
-Similarly, `abandoned: <date>` sets the status to 'Abandoned'.
+The key-value pair `completed: <date>` will both capture the date and set the status to
+'Completed'. Similarly, `abandoned: <date>` sets the status to 'Abandoned'.
 
 If there is a METADATA.txt or _METADATA.txt file it will be used instead of the README
 file. This allows you to keep the metadata out of the README file that will be displayed
@@ -84,7 +84,8 @@ by GitHub.
 
 ## Command-Line Interface
 
-*Run the scripts from the top-level folder e.g., `cd ~/Projects; bin/build.py`, **not** from within the bin folder itself.*
+*Run the scripts from the top-level folder e.g., `cd ~/Projects; bin/build.py`, **not**
+from within the bin folder itself.*
 
 ```
 bin/configure.py
@@ -96,18 +97,20 @@ Reads the .txt files in the config folder and writes out corresponding .json fil
 bin/scan.py
 ```
 
-Reads the README files in your **projects** folder tree, updates the .json files in the **data** folder.
-By default, this also runs the configure script. Pass -k/--skip-preflight to bypass this.
+Reads the README files in your **projects** folder tree, updates the .json files in the
+**data** folder. By default, this also runs the configure script. Pass -k/--skip-preflight
+to bypass this.
 
-```
-bin/build.py
-```
+``` bin/build.py ```
 
-Reads the .json files in the **data** folder, writes a **library.json** file, then uses that file and the **templates** folder to populate the **website** folder.
-By default, this also runs the configure and scan scripts. Pass -k/--skip-preflight to bypass this.
+Reads the .json files in the **data** folder, writes a **library.json** file, then uses
+that file and the **templates** folder to populate the **website** folder. By default,
+this also runs the configure and scan scripts. Pass -S/--skip-scan to bypass the (fairly
+long) scan step, or pass -k/--skip-preflight to bypass both configure and scan steps.
 
-Note that the build process makes use of the [Jinja](https://jinja.palletsprojects.com) command-line interface.
-If you have not already done so, you will need to run `brew install jinja-cli` before building your site.
+Note that the build process makes use of the [Jinja](https://jinja.palletsprojects.com)
+command-line interface. If you have not already done so, you will need to run `brew
+install jinja-cli` before building your site.
 
 
 ## Configuration
