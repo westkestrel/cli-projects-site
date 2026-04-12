@@ -153,3 +153,18 @@ modified), the project type and status, the project name, and the project descri
 The type and status are represented by icons from te previous section, and hovering over
 them presents a tooltip with the type or status text.
 
+## Project Briefs
+
+The project metadata is harvested from README and/or METADATA files in the individual
+project dirctories.  This is convenient when you are working on a single project, but less
+so when you are working on the projects website and wanting to update several projects at
+once.
+
+If you run `bin/scan.py -b` (or `bin/build.py -b`) then the script will generate files
+into the *data/briefs/* folder, one file per project group. These are simple text files
+listing the project-folder paths followed by all of the metadata key-value pairs.
+
+You can edit these files, and when you build the website with `bin/build.py [-S|-k]` your
+edits will override the values extracted from the project README and METADATA files.  You
+can run `bind/scan.py -B` or `bin/build.py -B` to update the README and METADATA files
+with 

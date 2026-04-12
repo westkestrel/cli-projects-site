@@ -34,6 +34,11 @@ def make_parser(description=__doc__, suppress_sources=False):
         const=True,
         default=False,
         help='create/update summary files in %s folder' % briefs_dir)
+    parser.add_argument('-B', '--export-briefs',
+        dest='export_briefs', action='store_const',
+        const=True,
+        default=False,
+        help='copy the metadata in %s folder back into the README files' % briefs_dir)
     parser.add_argument('-k', '--skip-preflight',
         dest='skip_preflight', action='store_const',
         const=True,
@@ -588,6 +593,9 @@ class Project:
                 if (value == None or value == 'None') and key in self: continue
                 self[key] = value
                 
+    def items(self):
+        return self.metadata.items()
+                
     def __contains__(self, key):
         return key in self.metadata or self.normalizer.key(key) in self.metadata
                 
@@ -612,6 +620,9 @@ class Project:
     def __setitem__(self, key, value):
         key, value = self.normalizer.item(key, value)
         self.metadata[key] = value
+        
+    def __str__(self):
+        return 'project "%s" with %d key-value pairs' % (self.name, len(self.metadata))
     
 class Library:
     '''
@@ -798,7 +809,11 @@ class Library:
                         print('(run with -b to update briefs/*.txt files)', file=stderr)
                     proj[key] = brief_value
                 
-    def write_briefs(self):
+    def write_briefs_to_data_dir(self):
+        '''
+        Takes the metadata from the loaded projects and writes it to files in the
+        data/briefs/ folder.
+        '''
         data_dir = expanduser(config.data_dir)
         briefs_dir = join(data_dir, 'briefs')
         if not exists(briefs_dir) and not options.testing:
@@ -809,7 +824,101 @@ class Library:
         if not options.silent: print('writing %d text files into %s/ folder' % (len(self.buckets), briefs_dir))
         for bucket_name in sorted(self.buckets.keys()):
             self.write_bucket(briefs_dir, join(briefs_dir, '%s.txt' % bucket_name), self.buckets[bucket_name])
+            
+    def write_briefs_to_project_dir(self):
+        '''
+        Takes the metadata from the data/briefs/ folder and writes it into the README
+        and/or METADATA files in the project directories.
+        '''
+        briefs = self.read_briefs()
+        for relpath, brief in briefs.items():
+            self.write_brief_to_project_dir(brief, relpath)
     
+    def write_brief_to_project_dir(self, brief, relpath):
+        '''
+        Writes the given brief key-value pairs into the METADATA or README file of
+        the project at the given path.
+        
+        If no README or METADATA file exists, a README will be created.
+        If a METADATA file exists, it will be updated.
+        If not, but a README file exists, then that file will be updated.
+        If neither exist, a README will be created.
+        
+        As a special case, if there is a README file but the metadata indicates that
+        the project lives on GitHub then a METADATA file will be created.
+        '''
+        root_dir = expanduser(config.projects_root_dir)
+        project_dir = join(root_dir, relpath)
+        folder = Folder(project_dir)
+        if not folder.exists(project_dir):
+            print('**error: project path %s does not exist' % project_dir, file=stderr)
+            return
+        metadata_paths = list(filter(lambda p: p.endswith('.md') or p.endswith('.txt'), glob(join(project_dir, '*METADATA*.*'))))
+        if len(metadata_paths) > 1:
+            print('**error: multiple METADATA paths:\n  %s' % '\n  '.join(metadata_paths))
+            return
+        if len(metadata_paths) == 0 and 'git_host' in brief:
+            metadata_paths.append(join(project_dir, '_METADATA.txt'))
+        if len(metadata_paths) == 1:
+            self.write_brief_to_file(brief, metadata_paths[0])
+            return
+        readme_paths = list(filter(lambda p: p.endswith('.md') or p.endswith('.txt'), glob(join(project_dir, '*README*.*'))))
+        if len(readme_paths) == 0:
+            readme_paths.append(join(project_dir, '_README.md'))
+        if len(readme_paths) > 1:
+            print('**error: multiple README paths:\n  %s' % '\n  '.join(readme_paths))
+            return
+        self.write_brief_to_file(brief, readme_paths[0])
+        
+    def write_brief_to_file(self, brief, path):
+        is_markdown = path.endswith('.md') or path.endswith('.markdown')
+        if not options.silent: print('%supdating %s' % ('NOT ' if options.testing else '', path))
+        try:
+            with open(path, encoding='utf-8') as file:
+                content = list(file)
+        except FileNotFoundError:
+            content = list()
+            
+        content = self.write_brief_to_content(brief, content, is_markdown)
+        
+        if options.testing: return
+        try:
+            with open(path, 'w', encoding='utf-8') as file:
+                for line in content:
+                    print(line.rstrip(), file=file)
+        except PermissionError:
+            print('**error: not permitted to write to %s' % path)
+                
+    SUPPRESSED_METADATA_KEYS = set([
+        'name', 'abspath', 'relpath',
+        'created', 'last_modified', 'last_touched', 'last_touched_file',
+        'inferred_type', 'inferred_status'
+    ])
+    
+    def write_brief_to_content(self, brief, content, is_markdown):
+        new_content = []
+        new_content.append('# %s' % brief.name)
+        new_content.append('')
+        line_pattern = '*%s: %s*' if is_markdown else '%s: %s'
+        for key, value in brief.items():
+            if not key in self.SUPPRESSED_METADATA_KEYS:
+                new_content.append(line_pattern % (key, value))
+        new_content.append('')
+                
+        copy_all_lines = False
+        for i, line in enumerate(map(str.rstrip, content), start=1):
+            if copy_all_lines:
+                new_content.append(line)
+                continue
+            if i == 1 and line.startswith('# '): continue
+            if line == '': continue
+            if re.match(r'^\*?[\w. -]+:\s+.+', line):
+                continue
+            copy_all_lines = True
+            new_content.append(line)
+        
+        return new_content
+         
     def write_buckets(self):
         data_dir = expanduser(config.data_dir)
         bucket_dir = join(data_dir, 'buckets')
@@ -892,6 +1001,10 @@ def main(args=None):
     library = Library()
     library.read_config_files()
     
+    if options.export_briefs:
+        library.write_briefs_to_project_dir()
+        return 0
+        
     if not options.silent: print('scanning project folders...')
     if len(sources) > 0:
         for source in map(expanduser, sources):
@@ -917,10 +1030,10 @@ def main(args=None):
         )
     
     if options.update_briefs:
-        library.write_briefs()
+        library.write_briefs_to_data_dir()
     else:
         library.apply_briefs(library.read_briefs())
-
+        
     library.write_buckets() # e.g., 2020.json, 2021.json, 2022.json, etc.
     # If the user only rebuilt 2026.json, do not emit a library.json containing just that one name
     if not hasattr(options, 'scan_source') or len(options.scan_sources) == 0:
