@@ -4,6 +4,7 @@ Python scripts to build a static website that describes your various projects, w
 projects can be source code, collections of photographs, notes about a home renovation,
 or whatever else you can think of.
 
+
 The scripts assume that you have a root folder (e.g. *~/Projects/*) where you create
 subfolders for projects, organized into meaningful groups (e.g., *~/Projects/2026/* group
 which contains *~/Projects/2026/MyGreatApp/* and *~/Projects/2026/MyAppWebsite/*).  When
@@ -56,6 +57,30 @@ bin/build.py # this reads your project folders and builds a website
 
 and then open [http://localhost/projects](http://localhost/projects) in a web browser.
 
+
+## Project Metadata
+
+The purpose of these scripts is to build a website describing your project name, type,
+status, creation and/or completion date, etc. Where does the project metadata come from?
+
+- **name** is inferred from the project folder name
+- **creation date** is inferred from the creation timestamp of the project folder
+- **last-touched date** is the modification timestamp of the newest file
+- **type** is inferred (if possible) from the presence of certain files (e.g., *.xcodeproj implies 'Application')
+- **status** is never inferred from the filesystem, and must be stated in a README or METADATA file
+
+Any `key: value` lines at the top of your project README (.md, .markdown, or .txt, with
+or without a leading underscore) are considered project metadata.
+
+The title of your README file (e.g., `# My Great Project`) is taken as the **name**,
+though this can be overridden by a `name: This is the real name` line in the file.
+
+The key-value pair `completed: <date>` will both capture the date and set the status to 'Completed'.
+Similarly, `abandoned: <date>` sets the status to 'Abandoned'.
+
+If there is a METADATA.txt or _METADATA.txt file it will be used instead of the README
+file. This allows you to keep the metadata out of the README file that will be displayed
+by GitHub.
 
 ## Command-Line Interface
 
