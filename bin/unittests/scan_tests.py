@@ -303,6 +303,34 @@ class TestProject(unittest.TestCase):
         p = Project('/2026/MyProject', normalizer=n)
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
         self.assertEqual(p.type, 'Script')
+        
+    def test_scan_readme_only_first_group(self):
+        content = '''
+        # My Great Project
+        
+        *Commenced: 2026/02/14*
+        *Completed: 15-Mar-2026*
+        
+        This is a pretty nifty project. I once sent an email about it.
+        
+        from: Alice
+        to: Bob
+        subject: My Great Project
+        
+        Isn't this great?
+        '''
+        p = Project('/2026/MyProject')
+        p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
+        self.assertEqual(p.abspath, '/2026/MyProject')
+        self.assertEqual(p.name, 'My Great Project')
+        self.assertEqual(p.commenced, '2026/02/14')
+        self.assertEqual(p.completed, '2026/03/15')
+        self.assertEqual(p.status, 'Completed')
+        with self.assertRaises(KeyError):
+            print('this value should NOT print: %s' % p['from'])
+        self.assertEqual(p.to, None)
+        self.assertEqual(p.subject, None)
+
 
 
 class TestLibrary(unittest.TestCase):

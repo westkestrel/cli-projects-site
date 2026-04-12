@@ -544,20 +544,37 @@ class Project:
         Extracts project name, date, etc. from the given README content, optionally applies
         it to the project metadata, and returns it.
         
+        Metadata in a README file consists of lines of the forms
+            # value         (only in line 1, and the key is inferred to be "name")
+            key: value      (basic key-value pair)
+            *key: value*    (italicized key-value pair; italics will be striped)
+        This "x: y" structure is such a common way to write that is possible that such
+        lines might occur farther down in the body of the file and not be intended as
+        project metadata.  To avoid accidentally including such lines, this script stops
+        any (non-blank) lines that do NOT match one of these patterns.
+        
         Note that even if apply==True, the returned data is what was just extracted,
         not the result of merging.
         '''
         data = OrderedDict()
-        for i, line in enumerate(content, start=1):
+        for i, line in enumerate(map(str.strip, content), start=1):
+        
             if i == 1 and line.startswith('# '):
-                self['name'] = line[1:].strip()
-            line = re.sub(r'#.*', '', line).strip().strip('*')
+                self['name'] = line[2:]
+                continue
+                
+            line = re.sub(r'#.*', '', line).strip('*') # strip comments and italics
+            if line == '': continue
+            
             match = re.match(r'([\w-]+):\s*(.+)', line)
             if match:
                 key, value = match.group(1, 2)
                 nkey, nvalue = self.normalizer.item(key, value)
                 if nkey in self.STATUS_KEYS: data['status'] = key
                 data[nkey] = nvalue
+            elif i > 1:
+                break
+                
         if apply: self.apply(data)
         return data
         
