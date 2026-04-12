@@ -668,7 +668,8 @@ class Library:
         return project
         
     def is_readme_path(self, path):
-        return 'readme' in basename(path).lower()
+        lowercased = basename(path).lower()
+        return 'readme' in lowercased or 'brief' in lowercased
         
     def scan_for_project_dirs(self, path):
         '''
@@ -702,7 +703,9 @@ class Library:
             else:
                 dirs[0:len(dirs)] = [] # do not recurse into subdirectories
             
-            files = sorted(filter(lambda f: re.match(r'_?readme.(txt|md|markdown)', f.lower()), files))
+            files = sorted(filter(lambda f: re.match(r'_?(metadata|readme).(txt|md|markdown)', f.lower()), files))
+            if len(files) > 1 and 'metadata' in ','.join(files).lower():
+                files = list(filter(lambda f: 'metadata' in f.lower(), files)) # ignore README if METADATA found
             project = self.get_project(project_path, create=True)
             if len(files) == 0:
                 if options.verbose: print('**warning: no README file found in %s' % root, file=stderr)
