@@ -826,19 +826,28 @@ class Library:
         
     def write_brief_to_file(self, brief, path):
         is_markdown = path.endswith('.md') or path.endswith('.markdown')
-        if not options.silent: print('%supdating %s' % ('NOT ' if options.testing else '', path))
         try:
             with open(path, encoding='utf-8') as file:
                 content = list(file)
         except FileNotFoundError:
             content = list()
             
-        content = self.write_brief_to_content(brief, content, is_markdown)
+        new_content = self.write_brief_to_content(brief, content, is_markdown)
+        pruned_content = list(filter(lambda s: s != '', map(str.strip, content)))
+        pruned_new_content = list(filter(lambda s: s != '', map(str.strip, new_content)))
+        if pruned_content == pruned_new_content:
+            return # do not update if the only changes are whitespace
+        if len(pruned_content) == 0 and len(pruned_new_content) == 1 and pruned_new_content[0].startswith('#'):
+            return # or if there was no old file, and the new file only defined the project name
         
-        if options.testing: return
+        if options.testing:
+            print('NOT updating %s' % path)
+            return
+        if not options.silent: print('updating %s' % path)
+
         try:
             with open(path, 'w', encoding='utf-8') as file:
-                for line in content:
+                for line in new_content:
                     print(line.rstrip(), file=file)
         except PermissionError:
             print('**error: not permitted to write to %s' % path)
