@@ -1105,11 +1105,14 @@ def main(args=None):
                 continue
             
     for key, values in sorted(library.normalizer.found_values_by_key.items()):
-        unexpected_values = ', '.join(map(lambda s: "'%s'" % s, sorted(filter(lambda v: v != None, values))))
-        if unexpected_values == '': continue
+        known_values = library.normalizer.known_values_by_key[key]
+        found_values = filter(lambda v: v != None and v != 'None', values)
+        unexpected_values = filter(lambda v: v not in known_values, found_values)
+        unexpected_values_string = ', '.join(unexpected_values)
+        if unexpected_values_string == '': continue
         print('**warning: field \'%s\' had unexpected values %s' % (
             key,
-            unexpected_values),
+            unexpected_values_string),
             file=stderr,
         )
     
