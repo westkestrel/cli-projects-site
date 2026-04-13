@@ -472,7 +472,7 @@ class Project:
     '''
     
     DATE_KEYS = set(['date', 'commenced', 'last_touched', 'completed', 'abandoned', 'paused', 'resumed'])
-    STATUS_KEYS = set(['completed', 'abandoned', 'paused', 'resumed'])
+    STATUS_KEYS = set(['completed', 'delivered', 'abandoned', 'paused', 'resumed'])
     
     def __init__(self, path, folder=None, normalizer=None, type_patterns_by_key=None):
         self.folder = folder if folder != None else Folder(path)
