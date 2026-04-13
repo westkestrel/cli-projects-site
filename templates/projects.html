@@ -4,6 +4,7 @@
   <th class="date"><span>Date</span></th>
   <th class="type" title="Type"><span>Ty</span></th>
   <th class="status" title="Status"><span>St</span></th>
+  <th class="status" title="Version Control System"><span>VC</span></th>
   <th class="project"><span>Project</span></th>
   <th class="description"><span>Description</span></th>
 </tr>
@@ -16,17 +17,26 @@
 </tr>
 {% for project in buckets[bucket] | reverse %}
 <tr class="project {{ project.css_class }}">
+  
   <td class="date">{{ project.completed | default(project.abandoned) | default(project.date) | default(project.commenced) }}</td>
   {% if project.type %}
   <td class="type" title="{{ project.type }}">{{ icons.type[project.type] | default(icons.type.Unclassified) }}</td>
   {% else %}
   <td class="type" title="None">{{ icons.type['None'] }}</td>
   {% endif %}
+  
   {% if project.status %}
   <td class="status" title="{{ project.status }}">{{ icons.status[project.status] | default(icons.status.Unclassified) }}</td>
   {% else %}
   <td class="status" title="None">{{ icons.status['None'] }}</td>
   {% endif %}
+  
+  {% if project.versioning %}
+  <td class="status" title="{{ project.versioning }}">{{ project.versioning }}</td>
+  {% else %}
+  <td class="status" title="None"></td>
+  {% endif %}
+  
   <td class="project">{{ project.name }}</td>
   <td class="description">{{ project.description }}</td>
 </tr>
