@@ -1113,10 +1113,9 @@ def main(args=None):
             file=stderr,
         )
     
+    library.apply_briefs(library.read_briefs())
     if options.update_briefs:
         library.write_briefs_to_data_dir()
-    else:
-        library.apply_briefs(library.read_briefs())
         
     library.write_buckets() # e.g., 2020.json, 2021.json, 2022.json, etc.
     # If the user only rebuilt 2026.json, do not emit a library.json containing just that one name
