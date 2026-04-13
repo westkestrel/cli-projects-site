@@ -621,6 +621,9 @@ class Project:
         key, value = self.normalizer.item(key, value)
         self.metadata[key] = value
         
+    def __len__(self):
+        return len(self.metadata)
+        
     def __str__(self):
         return 'project "%s" with %d key-value pairs' % (self.name, len(self.metadata))
     
@@ -635,7 +638,7 @@ class Library:
         self.type_patterns_by_key = dict()
         self.projects = OrderedDict() # projects keyed by absolute path
         self.buckets = OrderedDict() # arrays of projects, keyed by bucket name
-        self.have_delivered_overwrite_warning = False
+        self.brief_manager = BriefManager()
         
     def read_config_files(self):
         paths = sorted(glob(join(config.data_dir, '*_values.json')))
@@ -736,41 +739,7 @@ class Library:
         Reads the text files in the data/briefs/ folder and returns a dictionary
         mapping project relative pathnames to project metadata.
         '''
-        data_dir = expanduser(config.data_dir)
-        paths = glob(join(join(data_dir, 'briefs'), '*.txt'))
-        if len(paths) == 0: return None
-        data = OrderedDict()
-        for path in paths:
-            with open(path, encoding='utf-8') as file:
-                data = self.read_briefs_content(file, path, data)
-        return data
-        
-    def read_briefs_content(self, content, path, data):
-        '''
-        Processes the given content (an collection of lines of text) and returns a
-        dictionary mapping project relative pathnames to project metadata.
-        '''
-        proj = None
-        data_dir = expanduser(config.data_dir)
-        briefs_dir = join(data_dir, 'briefs')
-        bucket_name = splitext(path[len(briefs_dir) + 1:])[0]
-        for i, line in enumerate(map(str.strip, content)):
-            if line == '':
-                continue
-            elif line.startswith('# '):
-                project_relpath = line[2:].strip()
-                project_abspath = join(config.projects_root_dir, project_relpath)
-                brief = Project(project_abspath)
-                brief.source_file = path
-                brief.source_line = i
-                data[project_relpath] = brief
-            else:
-                try:
-                    key, value = re.match(r'([^:]+): (.+)', line).group(1, 2)
-                    brief[key] = value
-                except AttributeError:
-                    print('**error: %s: %d\n%s\nMalformed line' % (path, i, line), file=stderr)
-        return data
+        return self.brief_manager.read_briefs()
         
     def apply_briefs(self, briefs):
         '''
@@ -792,22 +761,7 @@ class Library:
                     join(bucket_dir, dirname(relpath).replace('/', '--')) + '.json'),
                     file=stderr)
             else:
-                for key, brief_value in brief.metadata.items():
-                    if key == 'source_file' or key == 'source_line': continue
-                    if key == 'abspath' or key == 'relpath': continue
-                    if brief_value == None or brief_value == 'None' or brief_value == 'null': continue
-                    try: value = proj[key]
-                    except KeyError: value = None
-                    if brief_value == value: continue
-                    print('**warning: %s: %s\n  in "%s", overwriting %s "%s" with briefs "%s"' % (
-                        brief.source_file, brief.source_line,
-                        proj.relpath,
-                        key, value, brief_value),
-                        file=stderr)
-                    if not self.have_delivered_overwrite_warning:
-                        self.have_delivered_overwrite_warning = True
-                        print('(run with -b to update briefs/*.txt files)', file=stderr)
-                    proj[key] = brief_value
+                self.brief_manager.update_project(proj)
                 
     def write_briefs_to_data_dir(self):
         '''
@@ -968,7 +922,120 @@ class Library:
                 if key in self.normalizer.DATE_FIELDS: value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
                 print('%s: %s' % (key, value), file=file)
         print("", file=file)
+        
+class BriefManager:
+    '''
+    "Briefs" are text files in the data directory, produced by passing -b/--update-briefs
+    to the script.  Their primary purpose is convenience; the user can read the metadata
+    for all projects in a bucket in a single place rather than having to open each
+    project's README or METADATA file separately.
+    
+    The user can also edit the briefs files, and can run with -B/--export-briefs to write
+    those changes back into the original README or METADATA files.
+    
+    Also, when the user runs the scan (or build) scripts the edits will override values
+    found in the README or METADATA files.
+    '''
+    
+    def __init__(self):
+        self.briefs_by_relpath = OrderedDict()
+        self.have_delivered_overwrite_warning = False
+        
+    def read_briefs(self, brief_dir=None, data=None):
+        '''
+        Reads the brief files in the given directory, or ./data/briefs/ if none is given.
+        The resulting briefs are stored in the given dictionary keyed by relative path,
+        or in self.briefs_by_relpath if no dictionary is given. 
+        '''
+        if data == None:
+            data = self.briefs_by_relpath
+        if brief_dir == None:
+            data_dir = expanduser(config.data_dir)
+            brief_dir = join(data_dir, 'briefs')
+        paths = recursive_glob('*.txt', brief_dir)
+        if len(paths) == 0: return None
+        for path in paths:
+            self.read_brief(path, data)
+        return data
+        
+    def read_brief(self, path, data=None):
+        '''
+        Reads a single brief file and stored the resulting brief records in the given
+        dictionary.
+        '''
+        if type(path) != str: raise ValueError('readBrief() first argument should be a path string, not %s' % type(path))
+        if data == None:
+            data = self.briefs_by_relpath
+        with open(path, encoding='utf-8') as file:
+            data = self.process_brief(file, path, data)
+        return data
+                
+    def process_brief(self, content, path=None, data=None):
+        '''
+        Processes the given content (an collection of lines of text) and returns a
+        dictionary mapping project relative pathnames to project metadata.
+        '''
+        if path == None:
+            path = 'stdin'
+        if data == None:
+            data = OrderedDict()
+        proj = None
+        data_dir = expanduser(config.data_dir)
+        briefs_dir = join(data_dir, 'briefs')
+        bucket_name = splitext(path[len(briefs_dir) + 1:])[0]
+        for i, line in enumerate(map(str.strip, content)):
+            if line == '':
+                continue
+            elif line.startswith('# '):
+                project_relpath = line[2:].strip()
+                project_abspath = join(config.projects_root_dir, project_relpath)
+                brief = Project(project_abspath)
+                brief.source_file = path
+                brief.source_line = i
+                data[project_relpath] = brief
+            else:
+                try:
+                    key, value = re.match(r'([^:]+): (.+)', line).group(1, 2)
+                    brief[key] = value
+                except AttributeError:
+                    print('**error: %s: %d\n%s\nMalformed line' % (path, i, line), file=stderr)
+        return data
+        
+    def update_project(self, project, brief=None):
+        '''
+        Applies the contents of a record from the brief text files to a project.
+        '''
+        if brief == None:
+            try: brief = self.briefs_by_relpath[project['relpath']]
+            except KeyError: return
+        
+        for key, brief_value in brief.metadata.items():
+            if key == 'source_file' or key == 'source_line': continue
+            if key == 'abspath' or key == 'relpath': continue
+            if brief_value == None or brief_value == 'None' or brief_value == 'null': continue
+            try: value = project[key]
+            except KeyError: value = None
+            if brief_value == value: continue
+            print('**warning: %s: %s\nIn project "%s", overwriting %s "%s" with "%s"' % (
+                brief.source_file, brief.source_line,
+                project['relpath'],
+                key, value, brief_value),
+                file=stderr)
+            if not self.have_delivered_overwrite_warning:
+                self.have_delivered_overwrite_warning = True
+                briefs_dir = join(config.data_dir, 'briefs')
+                briefs_glob = join(briefs_dir, '*.txt')
+                print('(run with -b to update %s files)' % briefs_glob, file=stderr)
+            project[key] = brief_value
             
+def recursive_glob(pattern, starting_dir):
+    results = []
+    results.extend(glob(join(starting_dir, pattern)))
+    for root, dirs, files in walk(starting_dir):
+        for d in dirs:
+            results.extend(glob(join(join(root, d), pattern)))
+    return sorted(results)
+    
 def recursive_mkdir(path):
     parent = dirname(path)
     if parent != '' and parent != '/' and not exists(parent):

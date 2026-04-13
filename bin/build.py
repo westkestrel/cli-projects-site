@@ -16,7 +16,7 @@ import re
 import subprocess
 
 from configure import preflight as preflight_configure, main as main_configure
-from scan import Config, preflight as preflight_scan, main as main_scan, make_parser as make_scan_parser
+from scan import Config, preflight as preflight_scan, BriefManager, main as main_scan, make_parser as make_scan_parser
 
 options = None
 def make_parser(description=__doc__):
@@ -41,10 +41,12 @@ def make_parser(description=__doc__):
 class Library:
     def __init__(self, should_read_all=True):
         self.root = OrderedDict()
+        self.brief_manager = BriefManager()
         self.unclassified_types = set()
         self.unclassified_statuses = set()
 
         if should_read_all:
+            self.brief_manager.read_briefs()
             self.read_all()
         
     def read_all(self):
@@ -133,6 +135,11 @@ class Library:
         data = json.load(content, object_pairs_hook=OrderedDict)
         for project in data:
         
+            # if we preflighted, scan.py:main() will have applied the briefs, but
+            # if not then we will need to do it here
+            if hasattr(options, 'skip_preflight') and options.skip_preflight:
+                self.brief_manager.update_project(project)
+            
             # if we have inferred_x but no x, then set x = inferred_x
             if 'created' in project and 'commenced' not in project:
                 project['commenced'] = project['created']
@@ -240,7 +247,7 @@ def main(args=None):
     config = Config()
     options = make_parser().parse_args(args)
     lib = Library()
-    lib.read_all()
+    
     data_dir =  expanduser(config.data_dir)
     lib.write(join(data_dir, 'library.json'))
     builder = Builder()
