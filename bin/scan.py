@@ -1006,9 +1006,12 @@ class BriefManager:
             else:
                 try:
                     key, value = re.match(r'([^:]+): (.+)', line).group(1, 2)
-                    brief[key] = value
                 except AttributeError:
                     print('**error: %s: %d\n%s\nMalformed line' % (path, i, line), file=stderr)
+                    continue
+                brief[key] = value
+                if key.lower() in Project.STATUS_KEYS and 'status' not in brief:
+                    brief['status'] = key[0].upper() + key[1:]
         return data
         
     def update_project(self, project, brief=None):
