@@ -940,6 +940,7 @@ class BriefManager:
     def __init__(self):
         self.briefs_by_relpath = OrderedDict()
         self.have_delivered_overwrite_warning = False
+        self.last_reported_file_and_line = None
         
     def read_briefs(self, brief_dir=None, data=None):
         '''
@@ -1016,16 +1017,19 @@ class BriefManager:
             try: value = project[key]
             except KeyError: value = None
             if brief_value == value: continue
-            print('**warning: %s: %s\nIn project "%s", overwriting %s "%s" with "%s"' % (
-                brief.source_file, brief.source_line,
-                project['relpath'],
+            file_and_line = '%s: %s' % (brief.source_file, brief.source_line)
+            if file_and_line != self.last_reported_file_and_line:
+                print('**warning: %s for project %s' % (file_and_line, project['relpath']))
+                self.last_reported_file_and_line = file_and_line
+            print('**warning: overwriting "%s" value "%s" with "%s"' % (
                 key, value, brief_value),
                 file=stderr)
             if not self.have_delivered_overwrite_warning:
                 self.have_delivered_overwrite_warning = True
                 briefs_dir = join(config.data_dir, 'briefs')
                 briefs_glob = join(briefs_dir, '*.txt')
-                print('(run with -b to update %s files)' % briefs_glob, file=stderr)
+                print('(run with -b to update %s files, or -B to update README and METADATA files in %s)'
+                    % (briefs_glob, config.projects_root_dir), file=stderr)
             project[key] = brief_value
             
 def recursive_glob(pattern, starting_dir):
