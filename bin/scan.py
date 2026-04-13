@@ -575,7 +575,8 @@ class Project:
             if match:
                 key, value = match.group(1, 2)
                 nkey, nvalue = self.normalizer.item(key, value)
-                if nkey in self.STATUS_KEYS: data['status'] = key[0].upper() + key[1:]
+                if nkey in self.STATUS_KEYS and 'status' not in data:
+                    data['status'] = key[0].upper() + key[1:]
                 data[nkey] = nvalue
             elif i > 1:
                 break
