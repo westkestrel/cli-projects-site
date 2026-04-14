@@ -11,7 +11,7 @@ from collections import OrderedDict
 from time import localtime, strftime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
-from os import mkdir, listdir, walk
+from os import W_OK, access, mkdir, listdir, walk
 from sys import argv, exit, stderr
 from time import localtime, strftime, strptime
 import json
@@ -285,6 +285,8 @@ class Folder:
         self.add_git_metadata(data)
         data['inferred_type'] = None
         data['inferred_status'] = None
+        if not access(self.abspath, W_OK):
+            data['readonly'] = True
         return data
         
     def add_rcs_metadata(self, data):
