@@ -167,8 +167,11 @@ class Library:
             project_date = None
             normalizer = Normalizer()
             output_format = config.html_date_format
+            # note that 'created' and 'last_touched' are fields of last resort, only used
+            # if no other date field was found
             for field in project:
                 if field not in self.DATE_FIELDS: continue
+                if field == 'last_touched' or field == 'created': continue
                 date_string = project[field]
                 if date_string == None or date_string == 'None': continue
                 
@@ -178,6 +181,8 @@ class Library:
                 project[field] = normalizer.date(date, output_format)
                 # strftime(output_format, date).lstrip('0')
                 project_date = project[field]
+            if project_date == None and 'last_touched' in project: project_date = project['last_touched']
+            if project_date == None and 'created' in project: project_date = project['created']
             project['date'] = project_date
             project['timestamp'] = normalizer.date(project_date, '%Y-%m-%d')
             
