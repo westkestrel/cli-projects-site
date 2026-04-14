@@ -279,13 +279,17 @@ def main(args=None):
     if not options.silent: print('updated %d files in %s' % (count, config.website_dir))
     
 if __name__ == '__main__':
-    config = Config()
-    options = make_parser().parse_args()
-    if not options.skip_preflight:
-        status = preflight_configure(options)
-        if status != 0: exit(status)
-        status = preflight_scan(options)
-        if status != 0: exit(status)
-        status = preflight(options)
-        if status != 0: exit(status)
-    exit(main(argv[1:]))
+    try:
+        config = Config()
+        options = make_parser().parse_args()
+        if not options.skip_preflight:
+            status = preflight_configure(options)
+            if status != 0: exit(status)
+            status = preflight_scan(options)
+            if status != 0: exit(status)
+            status = preflight(options)
+            if status != 0: exit(status)
+        exit(main(argv[1:]))
+    except KeyboardInterrupt:
+        print('INTERRUPTED', file=stderr)
+        exit(1)

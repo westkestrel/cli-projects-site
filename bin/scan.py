@@ -1179,8 +1179,12 @@ def main(args=None):
     return 0
     
 if __name__ == '__main__':
-    options = make_parser().parse_args()
-    status = preflight(options)
-    if status != 0: exit(status)
-    result = main(argv[1:])
-    exit(result)
+    try:
+        options = make_parser().parse_args()
+        status = preflight(options)
+        if status != 0: exit(status)
+        result = main(argv[1:])
+        exit(result)
+    except KeyboardInterrupt:
+        print('INTERRUPTED', file=stderr)
+        exit(1)

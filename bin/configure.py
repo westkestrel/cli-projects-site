@@ -497,8 +497,12 @@ def process_patterns_content(content, path):
     return data
 
 if __name__ == '__main__':
-    options = make_parser().parse_args()
-    status = preflight(options)
-    if status != 0: exit(status)
-    exit(main(argv[1:]))
+    try:
+        options = make_parser().parse_args()
+        status = preflight(options)
+        if status != 0: exit(status)
+        exit(main(argv[1:]))
+    except KeyboardInterrupt:
+        print('INTERRUPTED', file=stderr)
+        exit(1)
 
