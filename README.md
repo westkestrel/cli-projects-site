@@ -127,7 +127,7 @@ website_dir: /Library/WebServer/Documents/projects
 ```
 
 Note that if you have only changed your configuration you can skip the (relatively long)
-project-folder-scan process by running `bin/configure.py && bin/build.py --skip-preflight`.
+project-folder-scan process by running `bin/build.py --skip-scan` or (`-S`).
 
 ## The Website
 

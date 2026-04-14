@@ -25,6 +25,11 @@ def make_parser(description=__doc__):
     '''
     parser = make_scan_parser(description, suppress_sources=True)
     buckets = join(config.data_dir, 'buckets.json')
+    parser.add_argument('-S', '--skip-scan',
+        dest='skip_scan', action='store_const',
+        const=True,
+        default=False,
+        help='preflight the config, but do not re-scan the project folders')
     parser.add_argument('-g', '--debug',
         dest='debug', action='store_const',
         const=True,
@@ -144,6 +149,8 @@ class Library:
             # if not then we will need to do it here
             if hasattr(options, 'skip_preflight') and options.skip_preflight:
                 self.brief_manager.update_project(project)
+            elif hasattr(options, 'skip_scan') and options.skip_scan:
+                self.brief_manager.update_project(project)
             
             # if we have inferred_x but no x, then set x = inferred_x
             if 'created' in project and 'commenced' not in project:
@@ -254,8 +261,15 @@ class Builder:
             file.write(output.stdout)
     
 def preflight(options):
-    if not options.skip_preflight:
-        if not options.silent: print('running bin/scan.py (pass -k/--skip-preflight to bypass)')
+    if options.skip_scan:
+        if not options.silent: print('running bin/config.py (pass -k/--skip-preflight to bypass)')
+        status = main_configure()
+        if status != 0: return status
+        if not options.silent: print('bin/config.py completed successfully\n')
+    elif options.skip_preflight:
+        pass
+    else:
+        if not options.silent: print('running bin/scan.py (pass -k/--skip-preflight or -S/--skip-scan to bypass)')
         status = main_scan()
         if status != 0: return status
         if not options.silent: print('bin/scan.py completed successfully\n')
@@ -276,7 +290,12 @@ if __name__ == '__main__':
     try:
         config = Config()
         options = make_parser().parse_args()
-        if not options.skip_preflight:
+        if options.skip_scan:
+            status = preflight_configure(options)
+            if status != 0: exit(status)
+            status = preflight(options)
+            if status != 0: exit(status)
+        elif not options.skip_preflight:
             status = preflight_configure(options)
             if status != 0: exit(status)
             status = preflight_scan(options)
