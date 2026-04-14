@@ -6,7 +6,7 @@ for metadata in README (and other) files and creates project-description JSON fi
 the data/buckets/ folder.
 '''
 
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS as ARGPARSE_SUPPRESS
 from collections import OrderedDict
 from time import localtime, strftime
 from glob import glob
@@ -39,6 +39,12 @@ def make_parser(description=__doc__, suppress_sources=False):
         const=True,
         default=False,
         help='copy the metadata in %s folder back into the README files' % briefs_dir)
+    parser.add_argument('--debug-export-briefs',
+        dest='debug_export_briefs', action='store_const',
+        const=True,
+        default=False,
+        help=ARGPARSE_SUPPRESS)
+#         help='output the first README or METADATA changes that would be written out, and then exit')
     parser.add_argument('-k', '--skip-preflight',
         dest='skip_preflight', action='store_const',
         const=True,
@@ -844,6 +850,7 @@ class Library:
             with open(path, encoding='utf-8') as file:
                 content = list(file)
         except FileNotFoundError:
+            if options.debug_export_briefs: print('**warning: %s: file not found' % path, file=stderr)
             content = list()
             
         new_content = self.write_brief_to_content(brief, content, is_markdown)
@@ -858,6 +865,18 @@ class Library:
             print('NOT updating %s' % path)
             return
         if not options.silent: print('updating %s' % path)
+        
+        if options.debug_export_briefs:
+            print('would rewrite path %s' % path)
+            print()
+            print('from:')
+            for line in content: print('  %s' % line)
+            print()
+            print('to:')
+            for line in new_content: print('  %s' % line)
+            print()
+            print('exiting')
+            exit(1)
 
         try:
             with open(path, 'w', encoding='utf-8') as file:
@@ -1108,7 +1127,7 @@ def main(args=None):
     library = Library()
     library.read_config_files()
     
-    if options.export_briefs:
+    if options.export_briefs or options.debug_export_briefs:
         library.write_briefs_to_project_dir()
         return 0
         
