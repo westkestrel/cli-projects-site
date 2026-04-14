@@ -99,6 +99,7 @@ class Config:
             'template_dir': 'template',
             'website_dir': 'website',
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
+            'limit_dates_to_project_year': False,
             'json_date_format': '%Y-%m-%d',
             'html_date_format': '%d-%b-%Y',
             'title': 'Past Projects',
@@ -139,6 +140,8 @@ class Config:
         return self.values[key]
         
     def __setitem__(self, key, value):
+        if value == 'True' or value == 'true': value = True
+        if value == 'False' or value == 'false': value = False
         self.values[key] = value
         if key == 'skip':
             self.values['skip_regex'] = self.make_regex(value)
@@ -209,12 +212,12 @@ def create_configuration_folder(path):
         #projects_root_dir: CWD
         projects_root_dir: ~/Projects
         
-        # A comma-separated list of glob patterns that match
+        # A comma- or space-separated list of glob patterns that match
         # project folders in your project-root folder
-        projects: *19[0-9][0-9]/*, *20[0-9][0-9]/*
+        projects: *19[0-9][0-9]/* *20[0-9][0-9]/*
         
-        # a comma-separated list of glob patterns to skip when scanning project folders
-        skip: _*, .*, node_modules, tmp
+        # a list of glob patterns to skip when scanning project folders
+        skip: _* .* *.zip *.dmg node_modules tmp
         
         
         # A data folder where intermediate JSON files will be stored
@@ -234,6 +237,14 @@ def create_configuration_folder(path):
         json_date_format: %Y-%m-%d # e.g., 2025-03-01
         html_date_format: %d-%b-%Y # e.g., 1-Mar-2025
         
+        # If true and the project is in a folder that ends with four digits
+        # (e.g., "~/Projects/2015/My Project") then when looking for the latest
+        # modified file in the project any files modified after the project year
+        # will be disregarded.  This prevents the project date from spuriously
+        # changing just because you edited text file long after the project
+        # was completed.
+        limit_dates_to_project_year: true
+
         # If true, projects within a bucket will be sorted alphabetically.
         # If false, they will be sorted in reverse chronological order.
         alphabetic_project_sort: false

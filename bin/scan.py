@@ -13,7 +13,7 @@ from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import W_OK, access, mkdir, listdir, walk
 from sys import argv, exit, stderr
-from time import localtime, strftime, strptime, struct_time
+from time import localtime, mktime, strftime, strptime, struct_time
 import json
 import re
 import subprocess
@@ -397,6 +397,11 @@ class Folder:
         '''
         Returns the path nd timestamp of the last_touched_file file within the given folder.
         '''
+        ignore_dates_after = None
+        match = re.search(r'\D(\d{4})/', path)
+        if match and config.limit_dates_to_project_year:
+            year = int(match.group(1))
+            ignore_dates_after = mktime(strptime('%s-01-01' % (year+1), '%Y-%m-%d'))
         last_touched_file = None
         timestamp = None
         for root, dirs, files in self.walk(path if path != None else self.abspath):
@@ -410,6 +415,8 @@ class Folder:
                     continue # files this script updates, so not good for timestamp checks
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
+                if subtime != None and ignore_dates_after != None and subtime >= ignore_dates_after:
+                    continue
                 if  subtime != None and (timestamp == None or subtime > timestamp):
                     last_touched_file = subpath
                     timestamp = subtime
