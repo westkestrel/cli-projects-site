@@ -39,6 +39,8 @@ def make_parser(description=__doc__):
     return parser
     
 class Library:
+    DATE_FIELDS = set(['created', 'commenced', 'completed', 'abandoned', 'last_touched'])
+    
     def __init__(self, should_read_all=True):
         self.root = OrderedDict()
         self.brief_manager = BriefManager()
@@ -52,6 +54,9 @@ class Library:
     def read_all(self):
         data_dir = config.data_dir
         self.read_config(join(data_dir, 'config.json'))
+        
+        fields = json.load(open(join(data_dir, 'fields.json'), encoding='utf-8'))
+        self.DATE_FIELDS = set(map(lambda p: p[0], filter(lambda p: p[1] == 'date', fields.items())))
         
         for path in sorted(glob(join(data_dir, '*_values.json'))):
             self.read_iconic_fields(path)
@@ -149,18 +154,29 @@ class Library:
                     if true_field not in project or project[true_field] == None:
                         project[true_field] = project[field]
                         
-            for field in ['commenced', 'last_touched', 'completed', 'abandoned', 'date']:
-                if field in project and project[field] != None and project[field] != 'None':
-                    date = None
-                    for date_format in ['%Y/%m/%d', '%d-%B-%Y', '%d-%b-%Y', '%B %d, %Y']:
-                        try:
-                            date = strptime(project[field], date_format)
-                            break
-                        except ValueError:
-                            pass
-                    if date == None:
-                        raise ValueError('%s cannot be parsed as a date' % project[field])
-                    project[field] = strftime('%d-%b-%Y', date)
+            if project['name'] != basename(project['relpath']):
+                project['renamed'] = True
+                        
+            project_date = None
+            for field in project:
+                if field not in self.DATE_FIELDS: continue
+                date_string = project[field]
+                if date_string == None or date_string == 'None': continue
+                
+                date = None
+                known_formats = ['%Y/%m/%d', '%B %d, %Y', '%d-%b-%Y']
+                for format in known_formats:
+                    try:
+                        date = strptime(date_string, format)
+                        break
+                    except ValueError:
+                        pass
+                if date == None:
+                    raise ValueError("time data '%s' does not match format '%s'" % (date_string, "', '".join(formats)))
+                project[field] = strftime('%d-%b-%Y', date).lstrip('0')
+                project_date = project[field]
+            project['date'] = project_date
+            
             for field, value in list(project.items()):
                 if value == None or value == 'None':
                     del project[field]

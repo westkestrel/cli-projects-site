@@ -149,7 +149,7 @@ class Normalizer:
     Converts keys, values, and date strings to standard form
     '''
 
-    DATE_FIELDS = set(['created', 'commenced', 'last_touched', 'completed', 'paused', 'resumed', 'abandoned'])
+    DATE_FIELDS = set(['created', 'commenced', 'completed', 'abandoned', 'last_touched'])
 
     def __init__(self):
         self.aliases_by_key = OrderedDict()
@@ -649,6 +649,7 @@ class Library:
         path = join(data_dir, 'fields.json')
         if not options.silent: print('reading field order and types from %s' % path)
         self.field_types = json.load(open(path, encoding='utf-8'))
+        self.normalizer.DATE_FIELDS = set(map(lambda p: p[0], filter(lambda p: p[1] == 'date', self.field_types.items())))
         
         paths = sorted(glob(join(data_dir, '*_values.json')))
         if not options.silent: print('reading %d known-values files from %s/ folder' % (len(paths), 'config'))
@@ -950,7 +951,8 @@ class Library:
             if (value == None or value == 'None') and key not in self.FIELDS_ALWAYS_INCLUDED_IN_BRIEF:
                 continue
             elif key not in self.FIELDS_EXCLUDED_FROM_BRIEF:
-                if value != None and key in self.normalizer.DATE_FIELDS: value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
+                if value != None and key in self.normalizer.DATE_FIELDS:
+                    value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
                 print('%s: %s' % (key, value), file=file)
         print("", file=file)
         

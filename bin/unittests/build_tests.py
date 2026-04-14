@@ -68,5 +68,6 @@ class TestLibrary(unittest.TestCase):
             'last_touched_file': 'README.md',
             'type': 'Webapp',
             'status': 'Completed',
+            'date': '15-Mar-2026',
             'css_class': 'webapp completed',
         }])
