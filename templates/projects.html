@@ -15,7 +15,12 @@
     {{ bucket }}
   </th>
 </tr>
-{% for project in buckets[bucket] | reverse %}
+{% if config.alphabetic_project_sort | lower == 'true' %}
+    {% set projectList = buckets[bucket] | sort(attribute='name', case_sensitive=False) %}
+{% else %}
+    {% set projectList = buckets[bucket] | sort(attribute='timestamp') | reverse %}
+{% endif %}
+{% for project in projectList %}
 <tr class="project {{ project.css_class }}">
   
   <td class="date">{{ project.date | default(project.created) }}</td>

@@ -67,6 +67,7 @@ class TestLibrary(unittest.TestCase):
             'relpath': '2026/My Project',
             'commenced': '14-Feb-2026', # note new date format
             'completed': '15-Mar-2026',
+            'timestamp': '2026-03-15',
             'last_touched_file': 'README.md',
             'type': 'Webapp',
             'status': 'Completed',

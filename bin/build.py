@@ -179,6 +179,7 @@ class Library:
                 # strftime(output_format, date).lstrip('0')
                 project_date = project[field]
             project['date'] = project_date
+            project['timestamp'] = normalizer.date(project_date, '%Y-%m-%d')
             
             for field, value in list(project.items()):
                 if value == None or value == 'None':

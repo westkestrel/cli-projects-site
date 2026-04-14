@@ -234,6 +234,10 @@ def create_configuration_folder(path):
         json_date_format: %Y-%m-%d # e.g., 2025-03-01
         html_date_format: %d-%b-%Y # e.g., 1-Mar-2025
         
+        # If true, projects within a bucket will be sorted alphabetically.
+        # If false, they will be sorted in reverse chronological order.
+        alphabetic_project_sort: false
+        
         # Metadata to be included in the generated website
         title: My Recent Projects
         author: None
