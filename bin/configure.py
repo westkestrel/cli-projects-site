@@ -264,7 +264,6 @@ def create_configuration_folder(path):
         status: text
         inferred_type: text # based on presence of specific files within the project
         inferred_type_triggering_filename: path # the file in question
-        inferred_status: text # based on date fields like created, completed, etc.
         versioning: text
         git_host: text
         git_origin: text

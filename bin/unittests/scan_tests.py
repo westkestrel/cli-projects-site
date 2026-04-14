@@ -94,7 +94,6 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['last_touched'], '1970-01-10')
         self.assertEqual(d['last_touched_file'], 'main.c')
         self.assertEqual(d['inferred_type'], None)
-        self.assertEqual(d['inferred_status'], None)
         
     def test_scan_ignores_readme(self):
         root = expanduser(config.projects_root_dir)
@@ -112,7 +111,6 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['last_touched'], '1970-01-05')
         self.assertEqual(d['last_touched_file'], None)
         self.assertEqual(d['inferred_type'], None)
-        self.assertEqual(d['inferred_status'], None)
         
     def test_scan_rcs_files(self):
         root = expanduser(config.projects_root_dir)

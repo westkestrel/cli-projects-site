@@ -303,7 +303,6 @@ class Folder:
         self.add_subversion_metadata(data)
         self.add_git_metadata(data)
         data['inferred_type'] = None
-        data['inferred_status'] = None
         if not access(self.abspath, W_OK):
             data['readonly'] = True
         return data
@@ -914,7 +913,7 @@ class Library:
     SUPPRESSED_METADATA_KEYS = set([
         'name', 'abspath', 'relpath',
         'created', 'last_modified', 'last_touched', 'last_touched_file',
-        'inferred_type', 'inferred_status'
+        'inferred_type',
     ])
     
     def write_brief_to_content(self, brief, content, is_markdown):
@@ -1080,7 +1079,7 @@ class BriefManager:
                     continue
                 brief[key] = value
                 if key.lower() in Project.STATUS_KEYS and 'status' not in brief:
-                    brief['inferred_status'] = key[0].upper() + key[1:]
+                    brief['status'] = key[0].upper() + key[1:]
         return data
         
     def update_project(self, project, brief=None):
@@ -1101,7 +1100,7 @@ class BriefManager:
             if brief_value == value: continue
             project[key] = brief_value
             if key in Project.STATUS_KEYS:
-                project['inferred_status'] = key[0].upper() + key[1:]
+                project['status'] = key[0].upper() + key[1:]
             
             if readonly_project: continue # do not report overwrite warnings if project is readonly
             file_and_line = '%s: %s' % (brief.source_file, brief.source_line)
