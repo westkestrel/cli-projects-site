@@ -150,7 +150,7 @@ class Library:
                         project[true_field] = project[field]
                         
             for field in ['commenced', 'last_touched', 'completed', 'abandoned', 'date']:
-                if field in project:
+                if field in project and project[field] != None and project[field] != 'None':
                     date = None
                     for date_format in ['%Y/%m/%d', '%d-%B-%Y', '%d-%b-%Y', '%B %d, %Y']:
                         try:
@@ -162,10 +162,17 @@ class Library:
                         raise ValueError('%s cannot be parsed as a date' % project[field])
                     project[field] = strftime('%d-%b-%Y', date)
             for field, value in list(project.items()):
-                if value == 'None':
-                    project[field] = None
-            project_type = project['type'] if project['type'] != None else 'no-type'
-            project_status = project['status'] if project['status'] != None else 'no-status'
+                if value == None or value == 'None':
+                    del project[field]
+                    
+            if 'type' not in project: project_type = 'no-type'
+            elif project['type'] == 'None': project_type = 'no-type'
+            else: project_type = project['type']
+            
+            if 'status' not in project: project_status = 'no-status'
+            elif project['status'] == 'None': project_status = 'no-status'
+            else: project_status = project['status']
+            
             type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
             status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
             project['css_class'] = ' '.join([type_class, status_class]).strip()
@@ -177,6 +184,7 @@ class Library:
                 self.unclassified_types.add(project_type)
             if project_status not in status_icons:
                 self.unclassified_statuses.add(project_status)
+                
         bucket_name = bucket_name.replace('--', '/').replace('--', '/')
         self.root['buckets'][basename(bucket_name)] = data
         

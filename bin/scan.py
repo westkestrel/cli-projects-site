@@ -635,6 +635,7 @@ class Library:
     
     def __init__(self, normalizer=None):
         self.normalizer = normalizer if normalizer != None else Normalizer()
+        self.fields_types = OrderedDict()
         self.known_values_by_key = dict()
         self.type_patterns_by_key = dict()
         self.projects = OrderedDict() # projects keyed by absolute path
@@ -642,7 +643,13 @@ class Library:
         self.brief_manager = BriefManager()
         
     def read_config_files(self):
-        paths = sorted(glob(join(config.data_dir, '*_values.json')))
+        data_dir = expanduser(config.data_dir)
+        
+        path = join(data_dir, 'fields.json')
+        if not options.silent: print('reading field order and types from %s' % path)
+        self.field_types = json.load(open(path, encoding='utf-8'))
+        
+        paths = sorted(glob(join(data_dir, '*_values.json')))
         if not options.silent: print('reading %d known-values files from %s/ folder' % (len(paths), 'config'))
         for path in paths:
             self.read_known_values_file(path)
@@ -676,6 +683,10 @@ class Library:
         except KeyError:
             if not create: return None
         project = Project(path, normalizer=self.normalizer, type_patterns_by_key=self.type_patterns_by_key)
+        for key in self.field_types: # establish field orders (note that a project uses an OrderedDict)
+            if key not in project:
+                project[key] = None
+        
         self.projects[path] = project
         bucket_name = project.get_bucket_name()
         try: self.buckets[bucket_name].append(project)
@@ -920,7 +931,14 @@ class Library:
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(list(self.buckets.keys()), file, indent=4, ensure_ascii=False)
             
+    # There are some fields that we never want to include in the brief because the user
+    # should never edit them.
     FIELDS_EXCLUDED_FROM_BRIEF = set(['path', 'abspath', 'relpath'])
+    
+    # Fenerally we exclude keys with value = None, but some fields we want to include
+    # even if None as a signal to the user that they should provide a value.
+    FIELDS_ALWAYS_INCLUDED_IN_BRIEF = set(['description', 'type', 'status'])
+    
     def write_project_text(self, project_dict, file):
         '''
         Writes out the project key-value pairs as plain text.  Note that the given
@@ -928,8 +946,10 @@ class Library:
         '''
         print('# %s' % project_dict['relpath'], file=file)
         for key, value in project_dict.items():
-            if key not in self.FIELDS_EXCLUDED_FROM_BRIEF:
-                if key in self.normalizer.DATE_FIELDS: value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
+            if (value == None or value == 'None') and key not in self.FIELDS_ALWAYS_INCLUDED_IN_BRIEF:
+                continue
+            elif key not in self.FIELDS_EXCLUDED_FROM_BRIEF:
+                if value != None and key in self.normalizer.DATE_FIELDS: value = self.normalizer.date(value, '%d-%b-%Y').lstrip('0')
                 print('%s: %s' % (key, value), file=file)
         print("", file=file)
         
