@@ -1080,7 +1080,7 @@ class BriefManager:
                     continue
                 brief[key] = value
                 if key.lower() in Project.STATUS_KEYS and 'status' not in brief:
-                    brief['status'] = key[0].upper() + key[1:]
+                    brief['inferred_status'] = key[0].upper() + key[1:]
         return data
         
     def update_project(self, project, brief=None):
@@ -1100,6 +1100,8 @@ class BriefManager:
             except KeyError: value = None
             if brief_value == value: continue
             project[key] = brief_value
+            if key in Project.STATUS_KEYS:
+                project['inferred_status'] = key[0].upper() + key[1:]
             
             if readonly_project: continue # do not report overwrite warnings if project is readonly
             file_and_line = '%s: %s' % (brief.source_file, brief.source_line)
