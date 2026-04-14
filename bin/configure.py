@@ -99,7 +99,7 @@ class Config:
             'template_dir': 'template',
             'website_dir': 'website',
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
-            'json_date_format': '%Y/%m/%d',
+            'json_date_format': '%Y-%m-%d',
             'html_date_format': '%d-%b-%Y',
             'title': 'Past Projects',
             'author': None,
@@ -231,7 +231,7 @@ def create_configuration_folder(path):
         # See https://docs.python.org/3/library/datetime.html#format-codes
         # and note one exception: in these scripts %d is NOT zero-padded if it appears
         # at the start of the format string.
-        json_date_format: %Y-%m-%d # e.g., 2025/03/01
+        json_date_format: %Y-%m-%d # e.g., 2025-03-01
         html_date_format: %d-%b-%Y # e.g., 1-Mar-2025
         
         # Metadata to be included in the generated website

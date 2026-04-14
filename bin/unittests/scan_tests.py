@@ -20,12 +20,12 @@ class TestNormalizer(unittest.TestCase):
 
     def test_date(self):
         n = Normalizer()
-        self.assertEqual(n.date('2026-02-14'), '2026/02/14')
-        self.assertEqual(n.date('2026/02/14'), '2026/02/14')
-        self.assertEqual(n.date('14-Feb-2026'), '2026/02/14')
-        self.assertEqual(n.date('14-February-2026'), '2026/02/14')
-        self.assertEqual(n.date('2026-02-14T12:30:00Z'), '2026/02/14')
-        self.assertEqual(n.date(60*60*24*5), '1970/01/05')
+        self.assertEqual(n.date('2026/02/14'), '2026-02-14')
+        self.assertEqual(n.date('2026-02-14'), '2026-02-14')
+        self.assertEqual(n.date('14-Feb-2026'), '2026-02-14')
+        self.assertEqual(n.date('14-February-2026'), '2026-02-14')
+        self.assertEqual(n.date('2026-02-14T12:30:00Z'), '2026-02-14')
+        self.assertEqual(n.date(60*60*24*5), '1970-01-05')
 
     def test_key(self):
         n = Normalizer()
@@ -36,17 +36,17 @@ class TestNormalizer(unittest.TestCase):
     def test_value(self):
         n = Normalizer()
         self.assertEqual(n.value('MyProject', 'Name'), 'MyProject')
-        self.assertEqual(n.value('14-Feb-2026', 'Commenced'), '2026/02/14')
-        self.assertEqual(n.value('14-Feb-2026', 'Completed'), '2026/02/14')
-        self.assertEqual(n.value('14-Feb-2026', 'Abandoned'), '2026/02/14')
+        self.assertEqual(n.value('14-Feb-2026', 'Commenced'), '2026-02-14')
+        self.assertEqual(n.value('14-Feb-2026', 'Completed'), '2026-02-14')
+        self.assertEqual(n.value('14-Feb-2026', 'Abandoned'), '2026-02-14')
         
     def test_item(self):
         n = Normalizer()
         self.assertEqual(n.item('Name', 'MyProject'), ('name', 'MyProject'))
-        self.assertEqual(n.item('Commenced', '14-Feb-2026'), ('commenced', '2026/02/14'))
-        self.assertEqual(n.item('LastTouched', '14-Feb-2026'), ('last_touched', '2026/02/14'))
-        self.assertEqual(n.item('Completed', '14-Feb-2026'), ('completed', '2026/02/14'))
-        self.assertEqual(n.item('Abandoned', '14-Feb-2026'), ('abandoned', '2026/02/14'))
+        self.assertEqual(n.item('Commenced', '14-Feb-2026'), ('commenced', '2026-02-14'))
+        self.assertEqual(n.item('LastTouched', '14-Feb-2026'), ('last_touched', '2026-02-14'))
+        self.assertEqual(n.item('Completed', '14-Feb-2026'), ('completed', '2026-02-14'))
+        self.assertEqual(n.item('Abandoned', '14-Feb-2026'), ('abandoned', '2026-02-14'))
         
 class TestFolder(unittest.TestCase):
 
@@ -90,8 +90,8 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
-        self.assertEqual(d['created'], '1970/01/05')
-        self.assertEqual(d['last_touched'], '1970/01/10')
+        self.assertEqual(d['created'], '1970-01-05')
+        self.assertEqual(d['last_touched'], '1970-01-10')
         self.assertEqual(d['last_touched_file'], 'main.c')
         self.assertEqual(d['inferred_type'], None)
         self.assertEqual(d['inferred_status'], None)
@@ -108,8 +108,8 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
         self.assertEqual(d['relpath'], '2026/MyProject')
         self.assertEqual(d['name'], 'MyProject')
-        self.assertEqual(d['created'], '1970/01/05')
-        self.assertEqual(d['last_touched'], '1970/01/05')
+        self.assertEqual(d['created'], '1970-01-05')
+        self.assertEqual(d['last_touched'], '1970-01-05')
         self.assertEqual(d['last_touched_file'], None)
         self.assertEqual(d['inferred_type'], None)
         self.assertEqual(d['inferred_status'], None)
@@ -247,20 +247,20 @@ class TestProject(unittest.TestCase):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Completed: 15-Mar-2026*
         *Type: Video*
         '''.split('\n'))
         self.assertEqual(data, {
-            'commenced': '2026/02/14',
-            'completed': '2026/03/15',
+            'commenced': '2026-02-14',
+            'completed': '2026-03-15',
             'status': 'Completed',
             'type': 'Video',
         })
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'MyProject')
-        self.assertEqual(p.commenced, '2026/02/14')
-        self.assertEqual(p.completed, '2026/03/15')
+        self.assertEqual(p.commenced, '2026-02-14')
+        self.assertEqual(p.completed, '2026-03-15')
         self.assertEqual(p.type, 'Video')
         self.assertEqual(p.status, 'Completed')
 
@@ -268,13 +268,13 @@ class TestProject(unittest.TestCase):
         p = Project('/2026/MyProject')
         self.assertEqual(p.name, 'MyProject') # inferred from path in constructor
         data = p.scan_readme_content('''
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Abandoned: 15-Mar-2026*
         *Type: Video*
         '''.split('\n'), apply=False)
         self.assertEqual(data, {
-            'commenced': '2026/02/14',
-            'abandoned': '2026/03/15',
+            'commenced': '2026-02-14',
+            'abandoned': '2026-03-15',
             'type': 'Video',
             'status': 'Abandoned',
         })
@@ -289,35 +289,35 @@ class TestProject(unittest.TestCase):
         content = '''
         # My Great Project
         
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Completed: 15-Mar-2026*
         '''
         p = Project('/2026/MyProject')
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'My Great Project')
-        self.assertEqual(p.commenced, '2026/02/14')
-        self.assertEqual(p.completed, '2026/03/15')
+        self.assertEqual(p.commenced, '2026-02-14')
+        self.assertEqual(p.completed, '2026-03-15')
         self.assertEqual(p.status, 'Completed')
 
     def test_scan_inferred_values_not_completed(self):
         content = '''
         # My Great Project
         
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         '''
         p = Project('/2026/MyProject')
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'My Great Project')
-        self.assertEqual(p.commenced, '2026/02/14')
+        self.assertEqual(p.commenced, '2026-02-14')
         self.assertEqual(p.status, None)
 
     def test_scan_aliased_values(self):
         content = '''
         # My Great Project
         
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Completed: 15-Mar-2026*
         *Type: Python*
         '''
@@ -331,7 +331,7 @@ class TestProject(unittest.TestCase):
         content = '''
         # My Great Project
         
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Completed: 15-Mar-2026*
         
         This is a pretty nifty project. I once sent an email about it.
@@ -346,8 +346,8 @@ class TestProject(unittest.TestCase):
         p.scan_readme_content(map(str.strip, content.split('\n')[1:]))
         self.assertEqual(p.abspath, '/2026/MyProject')
         self.assertEqual(p.name, 'My Great Project')
-        self.assertEqual(p.commenced, '2026/02/14')
-        self.assertEqual(p.completed, '2026/03/15')
+        self.assertEqual(p.commenced, '2026-02-14')
+        self.assertEqual(p.completed, '2026-03-15')
         self.assertEqual(p.status, 'Completed')
         with self.assertRaises(KeyError):
             print('this value should NOT print: %s' % p['from'])
@@ -370,7 +370,7 @@ class TestLibrary(unittest.TestCase):
         content = '''
         # My Great Project
         
-        *Commenced: 2026/02/14*
+        *Commenced: 2026-02-14*
         *Completed: 15-Mar-2026*
         *Type: Python*
         '''
