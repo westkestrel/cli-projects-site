@@ -1099,6 +1099,7 @@ class BriefManager:
             if key == 'source_file' or key == 'source_line': continue
             if key == 'abspath' or key == 'relpath': continue
             if key == 'last_touched' or key == 'last_touched_file': continue
+            if key.startswith('inferred_'): continue
             if brief_value == None or brief_value == 'None' or brief_value == 'null': continue
             try: value = project[key]
             except KeyError: value = None
