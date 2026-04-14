@@ -641,14 +641,18 @@ class Project:
     def __getitem__(self, key):
         try:
             return self.metadata[key]
-        except KeyError:
+        except KeyError as e:
             key = self.normalizer.key(key)
             try:
                 return self.metadata[key]
             except KeyError:
-                if not key.startswith('inferred_'):
-                    inferred_key = 'inferred_%s' % key
-                return self.metadata[inferred_key]
+                if key.startswith('inferred'):
+                    raise e
+                else:
+                    try:
+                        return self.metadata['inferred_%s' % key]
+                    except KeyError:
+                        raise e
         
     def __setitem__(self, key, value):
         key, value = self.normalizer.item(key, value)
