@@ -126,8 +126,8 @@ class PatternRuleGroup:
     def match_any(self, filenames):
         for filename in filenames:
             match = self.match(filename)
-            if match != None: return match
-        return None
+            if match != None: return match, filename
+        return None, None
                 
     def match(self, filename):
         for rule in self.rules:
@@ -522,9 +522,10 @@ class Project:
         filenames = [basename(project_dir)] + filenames
         for key, pattern_group in self.type_patterns_by_key.items():
             inferred_key = 'inferred_%s' % key
-            match = pattern_group.match_any(filenames)
+            (match, filename) = pattern_group.match_any(filenames)
             if match != None:
                 data[inferred_key] = match
+                data[inferred_key + '_triggering_filename'] = filename
         if apply: self.apply(data)
         return data
         

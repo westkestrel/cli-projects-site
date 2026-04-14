@@ -182,6 +182,7 @@ class TestProject(unittest.TestCase):
         data = p.scan_filenames(path)
         self.assertEqual(data, {
             'inferred_type': 'Web App',
+            'inferred_type_triggering_filename': 'package.json',
         })
 
     def test_scan_filenames_glob_case(self):
@@ -201,6 +202,7 @@ class TestProject(unittest.TestCase):
         data = p.scan_filenames(path)
         self.assertEqual(data, {
             'inferred_type': 'Script',
+            'inferred_type_triggering_filename': 'foo.py',
         })
 
     def test_scan_filenames_no_match_case(self):
