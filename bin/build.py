@@ -16,7 +16,7 @@ import re
 import subprocess
 
 from configure import preflight as preflight_configure, main as main_configure
-from scan import Config, preflight as preflight_scan, BriefManager, main as main_scan, make_parser as make_scan_parser
+from scan import Config, config, preflight as preflight_scan, Normalizer, BriefManager, main as main_scan, make_parser as make_scan_parser
 
 options = None
 def make_parser(description=__doc__):
@@ -158,22 +158,18 @@ class Library:
                 project['renamed'] = True
                         
             project_date = None
+            normalizer = Normalizer()
+            output_format = config.html_date_format
             for field in project:
                 if field not in self.DATE_FIELDS: continue
                 date_string = project[field]
                 if date_string == None or date_string == 'None': continue
                 
-                date = None
-                known_formats = ['%Y/%m/%d', '%B %d, %Y', '%d-%b-%Y']
-                for format in known_formats:
-                    try:
-                        date = strptime(date_string, format)
-                        break
-                    except ValueError:
-                        pass
+                date = normalizer.parse_date(date_string)
                 if date == None:
-                    raise ValueError("time data '%s' does not match format '%s'" % (date_string, "', '".join(formats)))
-                project[field] = strftime('%d-%b-%Y', date).lstrip('0')
+                    raise ValueError("time data '%s' does not match format '%s'" % (date_string, "', '".join(normalizer.KNOWN_DATE_FORMATS)))
+                project[field] = normalizer.date(date, output_format)
+                # strftime(output_format, date).lstrip('0')
                 project_date = project[field]
             project['date'] = project_date
             
@@ -267,8 +263,6 @@ def preflight(options):
     
 def main(args=None):
     global options
-    global config
-    config = Config()
     options = make_parser().parse_args(args)
     lib = Library()
     

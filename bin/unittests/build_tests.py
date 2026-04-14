@@ -3,7 +3,9 @@ from io import StringIO
 from os.path import join
 import json
 
-from build import Library
+from build import Library, config
+
+config.reset() # discard any config/config.txt customizations
 
 class TestLibrary(unittest.TestCase):
 

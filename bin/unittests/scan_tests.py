@@ -2,6 +2,8 @@ import unittest
 from os.path import expanduser, join
 from scan import config, Config, PatternRuleGroup, PatternRule, Normalizer, Folder, TestableFolder, Project, Library
 
+config.reset() # discard any config/config.txt customizations
+
 class TestConfig(unittest.TestCase):
 
     def test_regex(self):

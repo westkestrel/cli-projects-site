@@ -13,14 +13,14 @@ from glob import glob
 from os.path import basename, dirname, exists, expanduser, getmtime, isdir, join, splitext
 from os import W_OK, access, mkdir, listdir, walk
 from sys import argv, exit, stderr
-from time import localtime, strftime, strptime
+from time import localtime, strftime, strptime, struct_time
 import json
 import re
 import subprocess
 
 from configure import Config, preflight as preflight_configure, main as main_configure, make_parser as make_configure_parser
     
-config = None
+config = Config()
 options = None
 def make_parser(description=__doc__, suppress_sources=False):
     briefs_dir = join(join(config.data_dir, 'briefs'), '')
@@ -228,31 +228,50 @@ class Normalizer:
         value = self.value(value, key)
         return key, value
         
-    def date(self, text, format='%Y/%m/%d'):
+    def date(self, text, format=None):
         '''
         Accepts date strings in a variety of formats (and integers and floats representing
-        seconds since epoch) and returns an ISO8601 date string (e.g., '2026/01/01')
+        seconds since epoch) and returns a date in the requested format, or the configured
+        format if you do not specify one.  The default configured format is 1-Jan-2025.
         '''
-        if text == None:
+        if format == None: format = config.json_date_format
+        if text == None or text == 'None':
             return None
         if type(text) == int or type(text) == float:
-            return strftime(format, localtime(text))
+            return strftime(format, localtime(text)).lstrip('0')
+        if type(text) == struct_time:
+            return strftime(format, text).lstrip('0')
             
         text = re.sub(r'(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),? *', '', text)
-        match = re.match(r'(\d{1,2})-(\w{3,})-(\d{4})', text)
-        if match:
-            day, month, year = match.group(1, 2, 3)
-            text = '%s/%s/%s' % (year, self.months[month.lower()[0:3]], day.rjust(2, '0'))
-        match = re.match(r'(\w{3,}) (\d{1,2}), (\d{4})', text)
-        if match:
-            month, day, year = match.group(1, 2, 3)
-            text = '%s/%s/%s' % (year, self.months[month.lower()[0:3]], day.rjust(2, '0'))
-        text = text.replace('-', '/')[0:10]
-        
-        if format != '%Y/%m/%d':
-            text = strftime(format, strptime(text, '%Y/%m/%d'))
+        text = re.sub(r'([A-Za-z]{3})[A-Za-z]+', r'\1', text)
+        text = re.sub(r'^(\d{4})[-/](\d{2})[-/](\d{2})T.+', r'\1-\2-\3', text)
+        date = self.parse_date(text)
+        if date == None: return text
+        return strftime(format, date).lstrip('0')
         
         return text
+        
+    KNOWN_DATE_FORMATS = ['%d-%b-%Y', '%Y/%m/%d', '%Y-%m-%d', '%Y-%m-%d', '%B %d, %Y']
+    def parse_date(self, text):
+        '''
+        Attempts to parse the given string using a variety of date formats. Returns a
+        date object see strftime() in the standard Python datetime library) if successful
+        and None if none of the formats work.
+        '''
+        date = None
+        configured_format = config.json_date_format
+        
+        # ensure that the configured format is in the format list, and that it is first
+        if configured_format != None and configured_format != self.KNOWN_DATE_FORMATS[0]:
+            self.KNOWN_DATE_FORMATS[0:0] = [configured_format]
+            
+        # try all the formats
+        for format in self.KNOWN_DATE_FORMATS:
+            try:
+                return strptime(text, format)
+            except ValueError:
+                pass
+        return None
         
 class Folder:
     '''

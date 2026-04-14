@@ -82,20 +82,30 @@ class Config:
     Calling Config(False) or Config(None) will create an empty config
     '''
     def __init__(self, path='config/config.txt'):
+        self.reset()
+        if path != False and path != None and exists(path):
+            self.read(path)
+        if 'skip' in self.values:
+            self.values['skip_regex'] = self.make_regex(self.values['skip'])
+            
+    def reset(self):
+        '''
+        Resets configuration to factory defaults. You should invoke this in unit tests
+        to ensure that your tests are not affected by the local config.
+        '''
         self.values = {
             'projects_root_dir': '~/Projects',
             'data_dir': 'data',
             'template_dir': 'template',
             'website_dir': 'website',
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
+            'json_date_format': '%Y/%m/%d',
+            'html_date_format': '%d-%b-%Y',
             'title': 'Past Projects',
             'author': None,
             'email': None,
         }
-        if path != False and path != None and exists(path):
-            self.read(path)
-        if 'skip' in self.values:
-            self.values['skip_regex'] = self.make_regex(self.values['skip'])
+        self.values['skip_regex'] = self.make_regex(self.values['skip'])
 
     def read(self, path):
         # we cannot refer to options because we may read config before parse_args() is called
@@ -216,6 +226,13 @@ def create_configuration_folder(path):
         
         # The location of the generated project-list website
         website_dir: ./website
+        
+        # How dates should be formatted in JSON files and the website.
+        # See https://docs.python.org/3/library/datetime.html#format-codes
+        # and note one exception: in these scripts %d is NOT zero-padded if it appears
+        # at the start of the format string.
+        json_date_format: %Y-%m-%d # e.g., 2025/03/01
+        html_date_format: %d-%b-%Y # e.g., 1-Mar-2025
         
         # Metadata to be included in the generated website
         title: My Recent Projects
