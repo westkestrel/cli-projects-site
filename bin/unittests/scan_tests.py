@@ -81,7 +81,8 @@ class TestFolder(unittest.TestCase):
         day = 60*60*24
         f = TestableFolder(path, {
             '2026/MyProject': [day * 5, day * 5],
-            '2026/MyProject/README.md': [day * 6, day * 10],
+            '2026/MyProject/main.c': [day * 6, day * 10],
+            '2026/MyProject/README.md': [day * 7, day * 11], # README files are ignored
         })
         d = f.scan_for_project_metadata()
         self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
@@ -89,7 +90,25 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(d['name'], 'MyProject')
         self.assertEqual(d['created'], '1970/01/05')
         self.assertEqual(d['last_touched'], '1970/01/10')
-        self.assertEqual(d['last_touched_file'], 'README.md')
+        self.assertEqual(d['last_touched_file'], 'main.c')
+        self.assertEqual(d['inferred_type'], None)
+        self.assertEqual(d['inferred_status'], None)
+        
+    def test_scan_ignores_readme(self):
+        root = expanduser(config.projects_root_dir)
+        path = join(root, '2026/MyProject')
+        day = 60*60*24
+        f = TestableFolder(path, {
+            '2026/MyProject': [day * 5, day * 5],
+            '2026/MyProject/README.md': [day * 6, day * 10],
+        })
+        d = f.scan_for_project_metadata()
+        self.assertEqual(d['abspath'], join(root, '2026/MyProject'))
+        self.assertEqual(d['relpath'], '2026/MyProject')
+        self.assertEqual(d['name'], 'MyProject')
+        self.assertEqual(d['created'], '1970/01/05')
+        self.assertEqual(d['last_touched'], '1970/01/05')
+        self.assertEqual(d['last_touched_file'], None)
         self.assertEqual(d['inferred_type'], None)
         self.assertEqual(d['inferred_status'], None)
         

@@ -276,7 +276,7 @@ class Folder:
         data['created'] = self.normalizer.date(self.get_ctime(self.abspath))
         last_touched_file, timestamp = self.get_last_touched_file(self.abspath)
         if last_touched_file != None: last_touched_file = last_touched_file[len(self.abspath) + 1: ]
-        if timestamp == None: timestamp = Folder(self.abspath).get_ctime()
+        if timestamp == None: timestamp = self.get_ctime(self.abspath)
         data['last_touched'] = self.normalizer.date(timestamp)
         data['last_touched_file'] = last_touched_file
         self.add_rcs_metadata(data)
@@ -362,6 +362,7 @@ class Folder:
         command = ['stat', '-f', '%B', path if path != None else self.abspath]
         output = subprocess.run(command, capture_output=True, text=True)
         timestamp = output.stdout
+        if timestamp == '': return None
         return int(timestamp)
         
     def get_mtime(self, path=None):
@@ -381,8 +382,12 @@ class Folder:
         for root, dirs, files in self.walk(path if path != None else self.abspath):
             dirs[0:len(dirs)] = sorted(filter(lambda d: not re.match(config.skip_regex, d), dirs))
             for file in sorted(filter(lambda f: not re.match(config.skip_regex, f), files)):
-                if re.match(r'^Icon\W?$', file): continue # a MacOS-specific filename containing a nonprintable character
-                if file == '.DS_Store': continue # a MacOS-specific file used by Finder
+                if re.match(r'^Icon\W?$', file):
+                    continue # a MacOS-specific filename containing a nonprintable character
+                if file == '.DS_Store':
+                    continue # a MacOS-specific file used by Finder
+                if 'README' in file or 'METADATA' in file:
+                    continue # files this script updates, so not good for timestamp checks
                 subpath = join(root, file)
                 subtime = self.get_mtime(subpath)
                 if  subtime != None and (timestamp == None or subtime > timestamp):
