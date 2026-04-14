@@ -1097,10 +1097,15 @@ class BriefManager:
             if brief_value == None or brief_value == 'None' or brief_value == 'null': continue
             try: value = project[key]
             except KeyError: value = None
-            if brief_value == value: continue
-            project[key] = brief_value
+            
             if key in Project.STATUS_KEYS:
                 project['status'] = key[0].upper() + key[1:]
+            if brief_value == value: continue
+            
+            if key == 'status' and (brief_value == None or brief_value == 'None'):
+                pass
+            else:
+                project[key] = brief_value
             
             if readonly_project: continue # do not report overwrite warnings if project is readonly
             file_and_line = '%s: %s' % (brief.source_file, brief.source_line)
