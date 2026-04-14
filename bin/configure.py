@@ -52,12 +52,20 @@ class ConfigError(Exception):
         self.line_number = line_number
         self.line_content = line_content
     def __str__(self):
-        text = '%s: %s\n%s\n%s' % (
-            self.filename if self.filename != None else 'stdin',
-            self.line_number,
-            self.line_content,
-            self.message
-        )
+        if self.line_number == None and self.line_content == None and self.filename == None:
+            text = message
+        elif self.line_number == None and self.line_content == None:
+            text = '%s: %s' % (
+                self.message,
+                self.filename
+            )
+        else:
+            text = '%s: %s\n%s\n%s' % (
+                self.filename if self.filename != None else 'stdin',
+                self.line_number,
+                self.line_content,
+                self.message
+            )
         return text.replace(': None', '').replace('\nNone', '')
 
 class Config:
@@ -214,6 +222,35 @@ def create_configuration_folder(path):
         author: None
         email: None
     ''')
+    create_values_file(join(path, 'fields.txt'), '''
+        # Edit this configuration text file, then run bin/configure.py
+        # to convert it to a JSON file.
+        #
+        # Possible field types are text, path, and date.
+        # The order in which you list the fields is the order they will
+        # appear in the data/briefs/*.txt and data/buckets/*.json files.
+        
+        name: text
+        description: text
+        abspath: path
+        relpath: path
+        created: date
+        commenced: date
+        completed: date
+        delivered: date
+        paused: date
+        abandoned: date
+        date: date
+        last_touched: date
+        last_touched_file: path
+        type: text
+        status: text
+        inferred_type: text
+        inferred_status: text
+        versioning: text
+        git_host: text
+        git_origin: text
+    ''')
     create_values_file(join(path, 'type_values.txt'), '''
         # List your project-type values here, then run bin/configure.py
         # to convert it to a JSON file.
@@ -287,6 +324,8 @@ def process(path, destination_path):
     if not path.endswith('.txt'):
         raise ConfigError('Not a text file: %s' % path, None, None, None)
     if basename(path) == 'config.txt':
+        process_config_file(path, destination_path)
+    elif basename(path) == 'fields.txt':
         process_config_file(path, destination_path)
     elif basename(path).endswith('_values.txt'):
         process_values_file(path, destination_path)
