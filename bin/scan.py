@@ -1098,6 +1098,7 @@ class BriefManager:
         for key, brief_value in brief.metadata.items():
             if key == 'source_file' or key == 'source_line': continue
             if key == 'abspath' or key == 'relpath': continue
+            if key == 'last_touched' or key == 'last_touched_file': continue
             if brief_value == None or brief_value == 'None' or brief_value == 'null': continue
             try: value = project[key]
             except KeyError: value = None
