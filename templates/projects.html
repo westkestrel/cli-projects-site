@@ -30,7 +30,12 @@
 <tr class="project {{ project.css_class }}">
   
   <td class="date">{{ project.date | default(project.created) }}</td>
-  {% if project.type %}
+  {% if project.alt_type %}
+  <td class="type alt-type" title="{{ project.type }} and {{ project.alt_type }}">
+      {{ icons.type[project.alt_type] | default(icons.type.Unclassified) }}
+      {{ icons.type[project.type] | default(icons.type.Unclassified) }}
+  </td>
+  {% elif project.type %}
   <td class="type" title="{{ project.type }}">{{ icons.type[project.type] | default(icons.type.Unclassified) }}</td>
   {% else %}
   <td class="type" title="None">{{ icons.type['None'] }}</td>

@@ -87,6 +87,13 @@ td.date {
     text-align: right;
     max-width: 12ex;
 }
+td.type {
+    text-align: right;
+}
+td.alt-type {
+    min-width: 4em;
+    text-align: right;
+}
 
 input[type=checkbox] {
     display: none;

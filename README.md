@@ -153,6 +153,15 @@ modified), the project type and status, the project name, and the project descri
 The type and status are represented by icons from te previous section, and hovering over
 them presents a tooltip with the type or status text.
 
+### Project type and alt_type
+
+Most projects have a single type, and so the **type** column contains a single icon.  If
+you add an **alt_type** field to the project metadata then the type column will contain
+two icons. This is useful for a folder that contains both an iOS app and a desktop
+application, or which contains both print design and a website.
+
+At the moment only a single alt_type is supported.
+
 ## Project Briefs
 
 The project metadata is harvested from README and/or METADATA files in the individual
