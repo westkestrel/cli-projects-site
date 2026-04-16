@@ -1,4 +1,9 @@
 <h2>Projects</h2>
+<p class="instructions">
+    Click the section headings to toggle section visibility.
+    Command-click to show or hide everything.
+</p>
+
 <table class="filterbox-data filter-type filter-status filter-meta">
 <tr class="header">
   <th class="date"><span>Date</span></th>
@@ -10,6 +15,7 @@
 </tr>
 
 {% for bucket in buckets | reverse %}
+<tbody class="collapsible-section">
 <tr class="bucket">
   <th colspan="5">
     {{ bucket }}
@@ -46,6 +52,7 @@
   <td class="description">{{ project.description }}</td>
 </tr>
 {% endfor %}
+</tbody>
 {% endfor %}
 
 </table>

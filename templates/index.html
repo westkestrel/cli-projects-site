@@ -4,14 +4,10 @@
 <title>{{ config.title }}</title>
 <link rel="stylesheet" href="style.css" />
 <script src="filterbox.js"></script>
+<script src="collapsible.js"></script>
 </head>
 <body>
 <h1>{{ config.title }}</h1>
-
-<p class="instructions">
-    Click the <strong>type</strong>, <strong>status</strong>, or <strong>meta</strong> lines to toggle project visibility.
-    Command-click to toggle non-matching projects.
-</p>
 
 {% include 'controls.html' %}
 {% include 'projects.html' %}

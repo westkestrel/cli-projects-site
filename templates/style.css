@@ -61,9 +61,8 @@ section.filter-controls label:before {
 /* styles related to the project table */
 
 table {
-    width: 100%;
-    margin: auto;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0em 0.5em;
 }
 tr {
     min-height: 2em;
@@ -86,6 +85,7 @@ td {
 td.date {
     white-space: nowrap;
     text-align: right;
+    max-width: 12ex;
 }
 
 input[type=checkbox] {
