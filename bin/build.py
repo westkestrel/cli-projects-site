@@ -210,6 +210,9 @@ class Library:
             if project_status not in status_icons:
                 self.unclassified_statuses.add(project_status)
                 
+            try: project['tags'] = re.split(r'[, ]+', project['tags'].lower().replace('favourite', 'favorite'))
+            except KeyError: pass
+                
         bucket_name = bucket_name.replace('--', '/').replace('--', '/')
         self.root['buckets'][basename(bucket_name)] = data
         

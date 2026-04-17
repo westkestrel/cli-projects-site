@@ -54,7 +54,10 @@
   {% endif %}
   
   <td class="project">{{ project.name }}</td>
-  <td class="description">{{ project.description }}</td>
+  <td class="description">
+  {% if 'favorite' in project.tags %}❤️ {% endif %}
+  {{ project.description }}
+  </td>
 </tr>
 {% endfor %}
 </tbody>

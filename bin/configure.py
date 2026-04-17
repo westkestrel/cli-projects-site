@@ -277,6 +277,7 @@ def create_configuration_folder(path):
         last_touched_file: path
         type: text
         status: text
+        tags: text
         inferred_type: text # based on presence of specific files within the project
         inferred_type_triggering_filename: path # the file in question
         versioning: text

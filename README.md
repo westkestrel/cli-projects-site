@@ -162,6 +162,12 @@ application, or which contains both print design and a website.
 
 At the moment only a single alt_type is supported.
 
+### Project tags
+
+You can add a **tags** field to a project. At the moment the only effect of tags is that
+a project tagged *favorite* (or *favourite*) will have a heart drawn next to it in the
+project table.
+
 ## Project Briefs
 
 The project metadata is harvested from README and/or METADATA files in the individual
