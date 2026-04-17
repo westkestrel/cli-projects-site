@@ -19,7 +19,11 @@ import re
 import subprocess
 
 from configure import Config, preflight as preflight_configure, main as main_configure, make_parser as make_configure_parser
-    
+
+# we always want our sort to be case- and diacritical-insensitive
+builtin_sorted = sorted
+sorted = lambda data: builtin_sorted(data, key=str.casefold)
+
 config = Config()
 options = None
 def make_parser(description=__doc__, suppress_sources=False):
@@ -1194,7 +1198,7 @@ def main(args=None):
                 print('**error: %s is not a directory' % root, file=stderr)
                 continue
             
-    for key, values in sorted(library.normalizer.found_values_by_key.items()):
+    for key, values in builtin_sorted(library.normalizer.found_values_by_key.items()):
         known_values = library.normalizer.known_values_by_key[key]
         found_values = filter(lambda v: v != None and v != 'None', values)
         unexpected_values = filter(lambda v: v not in known_values, found_values)

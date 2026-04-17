@@ -63,8 +63,8 @@ class TestFolder(unittest.TestCase):
         self.assertEqual(f.get_ctime(join(root, '2026/MyProject/README.md')), 30)
         self.assertEqual(f.get_mtime(join(root, '2026/MyProject/README.md')), 40)
         self.assertEqual(f.listdir(join(root, '2026/MyProject')), [
-            'README.md',
             'package.json',
+            'README.md',
             'src',
         ])
 
