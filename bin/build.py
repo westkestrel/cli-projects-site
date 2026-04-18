@@ -199,6 +199,11 @@ class Library:
             else: project_status = project['status']
             
             type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
+            for key, value in {
+                '0': 'zero-', '1': 'one-', '2': 'two-', '3': 'three-', '4': 'four-',
+                '5': 'five-', '6': 'six-', '7': 'seven-', '8': 'eight-', '9': 'nine-'
+            }.items():
+                type_class = type_class.replace(key, value)
             status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
             project['css_class'] = ' '.join([type_class, status_class]).strip()
             try: type_icons = self.root['icons']['type']

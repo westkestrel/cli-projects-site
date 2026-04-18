@@ -1,44 +1,62 @@
 /**
  * Filterbox allows you to use checkboxes to show and hide rows of data.
  *
- * To use it, you have a controls block. Note that if you omit the id=""
- * and for="" tags on the input and label, they will be inferred from the
+ * To use it, you ensure that your HTML has a controls block. Note that if you omit the
+ * id="" and for="" tags on the input and label, they will be inferred from the
  * label contents.  In the code below
  * - the first checkbox toggles "cats" (despite the label being "Felines")
  * - the second toggles "dogs" (inferred from the label)
  * - the third toggles "bugs", and ignores the explanatory text after the colon
  * - the fourth toggles "bugs", and ignores the explanatory text in parenthesis
- * - the fifth toggles "birds-and-bees" (spaces become hyphens)
- * - the sixth toggles both "birds" and "Bees" (commas separate items)
+ * - the fifth toggles "eight-legs" (8 became eight since CSS class names cannot begin with digits)
+ * - the sixth toggles "birds-and-bees" (spaces become hyphens)
+ * - the seventh toggles both "birds" and "Bees" (commas separate items)
  *
  * <ul class="filterbox-controls filter-animals">
  * <li><input type="checkbox" id="cats"><label for="cats">Felines</label></li>
  * <li><input type="checkbox"><label>Dogs</label></li>
  * <li><input type="checkbox"><label>Bugs: six-legged beasties</label></li>
  * <li><input type="checkbox"><label>Bugs (six-legged beasties)</label></li>
+ * <li><input type="checkbox"><label>8-Legs (arachnids and octopi)</label></li>
  * <li><input type="checkbox"><label>Birds and Bees</label></li>
  * <li><input type="checkbox"><label>Birds, Bees</label></li>
  * </ul>
  *
- * and a data block:
+ * Your HTML also must have a data block:
  *
  * <table class="filterbox-data filter-animals">
  * <th>...</th>
  * <tr class="cats">...</tr>
  * <tr class="cats">...</tr>
  * <tr class="dogs">...</tr>
+ * <tr class="bugs">...</tr>
+ * <tr class="eight-legs">...</tr>
  * <tr class="birds">...</tr>
  * <tr class="bees">...</tr>
  * <tr class="birds-and-bees">...</tr>
  * </table>
  *
  * When the user toggles the checkbox for a given id, all data elements with that
- * class have their visibility toggled. In the case above if the user toggles
+ * CSS class have their visibility toggled. In the case above if the user toggles
  * the last checkbox both the "birds" and "bees" rows will be hidden, but not the
  * "birds-and-bees" row.
  */
  
 const filterboxBootstrap = () => {
+
+const digitsToWords = (text) => {
+    return text
+        .replace('0', 'zero-')
+        .replace('1', 'one-')
+        .replace('2', 'two-')
+        .replace('3', 'three-')
+        .replace('4', 'four-')
+        .replace('5', 'five-')
+        .replace('6', 'six-')
+        .replace('7', 'seven-')
+        .replace('8', 'eight-')
+        .replace('9', 'nine-')
+}
 
 const setVisibility = (filterType, filterClassName, flag) => {
     const targetClassName = `filterbox-data ${filterType}`
@@ -49,6 +67,7 @@ const setVisibility = (filterType, filterClassName, flag) => {
     }
     for (container of filterContainers) {
         for (filterValue of filterClassName.split(' ')) {
+            filterValue = digitsToWords(filterValue)
             const className = container.getAttribute('class') || ''
             const hiddenPart = `hide-${filterValue}`
             const parts = className.split(' ').filter(x => x != hiddenPart)
@@ -118,6 +137,7 @@ const wireUpCheckboxes = () => {
             })
             toggle.checked = true
             for (filterValue of filterValues) {
+                filterValue = digitsToWords(filterValue)
                 cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
             }
         }
