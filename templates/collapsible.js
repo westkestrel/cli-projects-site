@@ -1,41 +1,9 @@
 /**
  * Collapsible allows you to expand and collapse sections with the click of the mouse.
  *
- * To use it, you have a controls block. Note that if you omit the id=""
- * and for="" tags on the input and label, they will be inferred from the
- * label contents.  In the code below
- * - the first checkbox toggles "cats" (despite the label being "Felines")
- * - the second toggles "dogs" (inferred from the label)
- * - the third toggles "bugs", and ignores the explanatory text after the colon
- * - the fourth toggles "bugs", and ignores the explanatory text in parenthesis
- * - the fifth toggles "birds-and-bees" (spaces become hyphens)
- * - the sixth toggles both "birds" and "Bees" (commas separate items)
- *
- * <ul class="filterbox-controls filter-animals">
- * <li><input type="checkbox" id="cats"><label for="cats">Felines</label></li>
- * <li><input type="checkbox"><label>Dogs</label></li>
- * <li><input type="checkbox"><label>Bugs: six-legged beasties</label></li>
- * <li><input type="checkbox"><label>Bugs (six-legged beasties)</label></li>
- * <li><input type="checkbox"><label>Birds and Bees</label></li>
- * <li><input type="checkbox"><label>Birds, Bees</label></li>
- * </ul>
- *
- * and a data block:
- *
- * <table class="filterbox-data filter-animals">
- * <th>...</th>
- * <tr class="cats">...</tr>
- * <tr class="cats">...</tr>
- * <tr class="dogs">...</tr>
- * <tr class="birds">...</tr>
- * <tr class="bees">...</tr>
- * <tr class="birds-and-bees">...</tr>
- * </table>
- *
- * When the user toggles the checkbox for a given id, all data elements with that
- * class have their visibility toggled. In the case above if the user toggles
- * the last checkbox both the "birds" and "bees" rows will be hidden, but not the
- * "birds-and-bees" row.
+ * If you decorate a container with class="collapsible-section" then its first child
+ * becomes a clickable accordion control that will show or hide all of the remaining
+ * elements of the section.
  */
  
 const collapsibleBootstrap = () => {
