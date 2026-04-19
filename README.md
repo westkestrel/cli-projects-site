@@ -4,7 +4,6 @@ Python scripts to build a static website that describes your various projects, w
 projects can be source code, collections of photographs, notes about a home renovation,
 or whatever else you can think of.
 
-
 The scripts assume that you have a root folder (e.g. *~/Projects/*) where you create
 subfolders for projects, organized into meaningful groups (e.g., *~/Projects/2026/* group
 which contains *~/Projects/2026/MyGreatApp/* and *~/Projects/2026/MyAppWebsite/*).  When
@@ -12,47 +11,48 @@ you run the build script it will will create a project-website folder whose *ind
 file lists all of your projects, tagged with their type and status, and allows you to
 filter by type and status to focus in the projects of interest to you.
 
+*⚠️ This suite of scripts was implemented on a MacOS system. It will probably work with
+minor modifications on Windows or Linux, but I have not tested it there.*
 
-## Installation
+## Preparing the local web server
 
-*This suite of scripts was implemented on a MacOS system. It will probably work fine
-on Windows or Linux, but I have not tested it there.*
+If you want to view your projects in a web browser it is helpful if the static projects
+site is located within your web server's document root.  You accomplish this with commands
+similar to the following, though you might need to make adjustments for you local
+environment:
 
-You *could* save this folder as just another project folder within your project root,
-but a more convenient approach is if it *is* your project root.
-
-For example, if you organize your projects by year you could do the following:
-
-```
-cd $HOME
-git clone github.com:westkestrel/cli-projects-website Projects
-cd Projects
-echo '20[0-9][0-9]*' >> .gitignore
-echo 'Active' >> .gitignore
-echo 'Evergreen' >> .gitignore
-mkdir -p 2020-2020/202{0,1,2,3,4,5,6,7,8,9} # Projects completed or abandoned in the 2020s
-mkdir -p 2010-2010/201{0,1,2,3,4,5,6,7,8,9} # ... 2010s
-mkdir -p 2000-2009/200{0,1,2,3,4,5,6,7,8,9} # ... 2000s (if you are that old)
-mkdir Active # Projects under active development
-mkdir Evergreen # Projects that will never end
-```
-
-and then edit *config/config.txt* as follows:
-
-```
-projects_root_dir: ~/Projects
-projects: 20??-20??/20??/* Evergreen Active
-data_dir: ./data
-website_dir: /Library/WebServer/Documents/projects
-```
-
-and finally
-
-```
+```bash
 sudo mkdir /Library/WebServer/Documents/projects
 sudo chown $(whoami) /Library/WebServer/Documents/projects
 sudo apachectl -t && sudo apachectl restart
-bin/build_projects_website.py # this reads your project folders and builds a website
+```
+
+Note that this is not necessary, since you can simply double-click the *index.html* file
+to open the website using the **file:** protocol rather than **http:**.
+
+## Installation
+
+*It does not matter where you keep these scripts, but "within your projects-root folder"
+is a convenient location.*
+
+```bash
+cd $HOME/Projects
+git clone github.com:westkestrel/cli-projects-website zProjectsWebsiteScripts
+ln zProjectsWebsiteScripts/bin ./bin
+bin/configure_projects_website.py
+```
+
+Because you do not have a *config* folder, the script will offer to create one and give
+you an opportunity to say where your projects live and where you want the static website
+to be created.
+
+After the script creates your *config* folder, you should examine all of the configuration
+files and make any edits that are appropriate to your projects.
+
+To actually create the static website, run the build script. 
+
+```bash
+bin/build_projects_website.py
 ```
 
 and then open [http://localhost/projects](http://localhost/projects) in a web browser.
@@ -84,7 +84,7 @@ by GitHub.
 
 ## Command-Line Interface
 
-```
+```bash
 bin/configure_projects_website.py
 ```
 
@@ -95,7 +95,7 @@ it with configuration files.
 *Tab-completion is your friend. Type `bin/co` and press the Tab key and it will*
 *autocomplete the full command name.*
 
-```
+```bash
 bin/scan_projects_for_website.py
 ```
 
@@ -103,7 +103,9 @@ Reads the README files in your **projects** folder tree, updates the .json files
 **data** folder. By default, this also runs the configure script. Pass -k/--skip-preflight
 to bypass this.
 
-``` bin/build_projects_website.py ```
+```bash
+bin/build_projects_website.py
+```
 
 Reads the .json files in the **data** folder, writes a **library.json** file, then uses
 that file and the **templates** folder to populate the **website** folder. By default,
