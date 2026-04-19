@@ -3,7 +3,7 @@ from io import StringIO
 from os.path import join
 import json
 
-from build import Library, config
+from build_projects_website import Library, config
 
 config.reset() # discard any config/config.txt customizations
 
