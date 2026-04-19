@@ -3,6 +3,10 @@
 Reads the .txt files in the config directory and writes out corresponding .json files into
 the data directory. The config directory must be either in the current working directory
 or adjacent to the bin directory that contains this script.
+
+If the config directory is found, but does not contain a config.txt file, the script will
+offer to populate it. If the config directory is not found, the script will offer to
+create one adjacent to the bin directory.
 '''
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
@@ -207,7 +211,10 @@ def main(args=None):
         offer_to_create_configuration_files(config.config_dir)
         sources = sorted(glob(join(config.config_dir, '*.txt')))
     if len(sources) == 0:
-        print('no configuration files found in config/ folder', file=stderr)
+        offer_to_create_configuration_files(config.config_dir, confirm_paths=True)
+        sources = sorted(glob(join(config.config_dir, '*.txt')))
+    if len(sources) == 0:
+        print('No configuration files found -- terminating', file=stderr)
         return 1
     elif not options.silent:
         preamble = 'NOT ' if options.testing else ''
@@ -222,23 +229,35 @@ def main(args=None):
             continue
     return result
         
-def offer_to_create_configuration_files(config_dir):
-    print('no %s/ folder found. Would you like to create one? [y] ' % config_dir, end='')
+def offer_to_create_configuration_files(config_dir, confirm_paths=False):
+    if exists(config_dir):
+        print('no config files found in %s/ folder. Would you like to create them? [y] ' % shorten_path(config_dir), end='')
+    else:
+        print('no %s/ folder found. Would you like to create one? [y] ' % shorten_path(config_dir), end='')
     stdout.flush()
     reply = stdin.readline()
     if len(reply.strip()) == 0 or reply[0].lower() == 'y':
-        create_configuration_folder(config_dir)
+        create_configuration_files(config_dir, confirm_paths=confirm_paths)
         
-def create_configuration_folder(config_dir):
-    print('creating %s' % config_dir)
-    mkdir(config_dir)
+def create_configuration_files(config_dir, confirm_paths=False):
+    if not exists(config_dir):
+        print('mkdir %s' % config_dir)
+        mkdir(expanduser(config_dir))
+    projects_root_dir = '~/Projects'
+    data_dir = unexpanduser(config.data_dir)
+    template_dir = unexpanduser(config.template_dir)
+    website_dir = unexpanduser(config.website_dir)
+    if confirm_paths:
+        projects_root_dir = prompt('Where do your projects reside?', projects_root_dir)
+        website_dir = prompt('Where will the website reside?', website_dir)
+        template_dir = prompt('Where are the website template files?', template_dir)
+        data_dir = prompt('Where will you store the temporary files?', data_dir)
     create_configuration_file(join(config_dir, 'config.txt'), '''
         # Edit this configuration text file, then run bin/configure.py
         # to convert it to a JSON file.
         
         
         # The folder where you keep your projects
-        #projects_root_dir: CWD
         projects_root_dir: ~/Projects
         
         # A comma- or space-separated list of glob patterns that match
@@ -250,14 +269,14 @@ def create_configuration_folder(config_dir):
         
         
         # A data folder where intermediate JSON files will be stored
-        data_dir: ./data
+        data_dir:  {data_dir}
         
         # A folder containing Jinja2 templates for the project-list website
-        template_dir: ./templates
+        template_dir: {template_dir}
         
         
         # The location of the generated project-list website
-        website_dir: ./website
+        website_dir: {website_dir}
         
         # How dates should be formatted in JSON files and the website.
         # See https://docs.python.org/3/library/datetime.html#format-codes
@@ -282,7 +301,7 @@ def create_configuration_folder(config_dir):
         title: My Recent Projects
         author: None
         email: None
-    ''')
+    '''.format(data_dir=data_dir, template_dir=template_dir, website_dir=website_dir))
     create_values_file(join(config_dir, 'fields.txt'), '''
         # Edit this configuration text file, then run bin/configure.py
         # to convert it to a JSON file.
@@ -370,6 +389,16 @@ def create_configuration_folder(config_dir):
         💀 Abandoned: Abandoned after a fairly substantial investment
         🪦 Obsolete: Superceded by a newer version
     ''')
+    
+def prompt(question, default_value):
+    if default_value != None:
+        print('%s [%s] ' % (question, shorten_path(default_value)), end='')
+    else:
+        print('%s ' % question, end='')
+    stdout.flush()
+    reply = stdin.readline().strip()
+    if reply == '': return default_value
+    else: return reply
     
 def create_configuration_file(path, content):
     print('creating %s' % path)
