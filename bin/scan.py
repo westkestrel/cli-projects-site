@@ -18,7 +18,7 @@ import json
 import re
 import subprocess
 
-from configure import Config, preflight as preflight_configure, main as main_configure, make_parser as make_configure_parser
+from configure_projects_website import Config, preflight as preflight_configure, main as main_configure, make_parser as make_configure_parser
 
 # we always want our sort to be case- and diacritical-insensitive
 builtin_sorted = sorted

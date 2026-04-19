@@ -1,5 +1,5 @@
 import unittest
-from configure import process_config_content, process_tag_content
+from configure_projects_website import process_config_content, process_tag_content
 
 class TestConfigFile(unittest.TestCase):
     def test_basic(self):

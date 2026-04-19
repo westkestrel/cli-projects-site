@@ -15,7 +15,7 @@ import json
 import re
 import subprocess
 
-from configure import preflight as preflight_configure, main as main_configure
+from configure_projects_website import preflight as preflight_configure, main as main_configure
 from scan import Config, config, preflight as preflight_scan, Normalizer, BriefManager, main as main_scan, make_parser as make_scan_parser
 
 options = None
