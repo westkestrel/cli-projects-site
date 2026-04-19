@@ -1,16 +1,21 @@
 #!/usr/bin/env python3
 '''
-Reads the .txt files in the config directory and writes out .json files.
+Reads the .txt files in the config directory and writes out corresponding .json files into
+the data directory. The config directory must be either in the current working directory
+or adjacent to the bin directory that contains this script.
 '''
 
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 from collections import OrderedDict
-from os.path import basename, exists, expanduser, join, splitext
+from os.path import basename, dirname, exists, expanduser, isdir, join, realpath, splitext
 from os import getcwd, mkdir
 from glob import glob
 from sys import argv, exit, stderr, stdin, stdout
 import json
 import re
+
+DEFAULT_CONFIG_DIR = join(dirname(dirname(realpath(__file__))), 'config')
+DEFAULT_CONFIG_FILE = join(DEFAULT_CONFIG_DIR, 'config.txt')
 
 options = None
 config = None
@@ -81,8 +86,10 @@ class Config:
     Calling Config() will create initialize from 'config/config.txt'
     Calling Config(False) or Config(None) will create an empty config
     '''
-    def __init__(self, path='config/config.txt'):
+    def __init__(self, path=DEFAULT_CONFIG_FILE):
         self.reset()
+        if path != False and path != None:
+            self.config_dir = dirname(path)
         if path != False and path != None and exists(path):
             self.read(path)
         if 'skip' in self.values:
@@ -94,10 +101,11 @@ class Config:
         to ensure that your tests are not affected by the local config.
         '''
         self.values = {
-            'projects_root_dir': '~/Projects',
-            'data_dir': 'data',
-            'template_dir': 'template',
-            'website_dir': 'website',
+            'config_dir': DEFAULT_CONFIG_DIR,
+            'projects_root_dir': join(expanduser('~'), 'Projects'),
+            'data_dir': join(dirname(DEFAULT_CONFIG_DIR), 'data'),
+            'template_dir': join(dirname(DEFAULT_CONFIG_DIR), 'templates'),
+            'website_dir': join(dirname(DEFAULT_CONFIG_DIR), 'website'),
             'skip': '.*, _*, tmp, node_modules, PackageCache, wp-content',
             'limit_dates_to_project_year': False,
             'json_date_format': '%Y-%m-%d',
@@ -123,7 +131,7 @@ class Config:
                     except ValueError:
                         print('**error: malformed line in %s line %s:\n%s' % (path, i, orig_line), file=stderr)
                         exit(1)
-                    self.values[key] = re.sub(r'^\./', '', value) # turn './data' into 'data'
+                    self[key] = value
                 if 'skip' in self.values:
                     self.values['skip_regex'] = self.make_regex(self.values['skip'])
         else:
@@ -142,6 +150,7 @@ class Config:
     def __setitem__(self, key, value):
         if value == 'True' or value == 'true': value = True
         if value == 'False' or value == 'false': value = False
+        if key.endswith('_dir'): value = expanduser(value)
         self.values[key] = value
         if key == 'skip':
             self.values['skip_regex'] = self.make_regex(value)
@@ -152,6 +161,25 @@ class Config:
         
     def make_regex_from_glob(self, text):
         return text.replace('.', '[.]').replace('?', '.').replace('*', '.*')
+        
+def unexpanduser(path):
+    '''
+    Given '/Users/bob/some/path', return '~/some/path'.
+    '''
+    home = join(expanduser('~'), '')
+    if path.startswith(home): path = join('~', path[len(home):])
+    return path
+
+def shorten_path(path):
+    '''
+    Given '/Users/bob/some/path', return '~/some/path', or 'path'
+    if the current directory is '~/some'.
+    '''
+    cwd = join(getcwd(), '')
+    home = join(expanduser('~'), '')
+    if path.startswith(cwd): path = path[len(cwd):]
+    if path.startswith(home): path = path[len(home):]
+    return path
 
 def preflight(options):
     '''
@@ -168,15 +196,16 @@ def main(args=None):
     global config
     if __name__ == '__main__': options = make_parser().parse_args(args)
     else: options, unknown = make_parser(suppress_sources=True).parse_known_args(args)
-    config = Config()
+    if isdir('./config'): config = Config('./config/config.txt')
+    else: config = Config()
     
     try: sources = options.config_sources
     except AttributeError: sources = []
-    if len(sources) == 0: sources = sorted(glob('config/*.txt'))
+    if len(sources) == 0: sources = sorted(glob(join(config.config_dir, '*.txt')))
         
-    if len(sources) == 0 and not exists('config'):
-        offer_to_create_configuration_files('config')
-        sources = sorted(glob('config/*.txt'))
+    if len(sources) == 0 and not exists(config.config_dir):
+        offer_to_create_configuration_files(config.config_dir)
+        sources = sorted(glob(join(config.config_dir, '*.txt')))
     if len(sources) == 0:
         print('no configuration files found in config/ folder', file=stderr)
         return 1
