@@ -1,0 +1,55 @@
+<h2>Projects</h2>
+<p class="instructions">
+    Click the section headings to toggle section visibility.
+    Command-click to show or hide everything.
+</p>
+
+{% for bucket in buckets | reverse %}
+{% if has_alt_types %}
+{% set alt_type_class = ' has-alt-types' %}
+{% else %}
+{% set alt_type_class = '' %}
+{% endif %}
+<section class="bucket collapsible-section filterbox-data filter-type filter-status filter-meta{{alt_type_class}}">
+    <h3>{{ bucket }}</h3>
+    {% if config.alphabetic_project_sort | lower == 'true' %}
+        {% set projectList = buckets[bucket] | sort(attribute='name', case_sensitive=False) %}
+    {% else %}
+        {% set projectList = buckets[bucket] | sort(attribute='timestamp') | reverse %}
+    {% endif %}
+    {% for project in projectList %}
+    <div class="project {{ project.css_class }}">
+        <span class="date">{{ project.date | default(project.created) }}</span>
+        {% if project.alt_type %}
+        <span class="type alt-type" title="{{ project.type }} and {{ project.alt_type }}">
+          {{ icons.type[project.alt_type] | default(icons.type.Unclassified) }}
+          {{ icons.type[project.type] | default(icons.type.Unclassified) }}
+        </span>
+        {% elif project.type %}
+        <span class="type" title="{{ project.type }}">{{ icons.type[project.type] | default(icons.type.Unclassified) }}</span>
+        {% else %}
+        <span class="type" title="None">{{ icons.type['None'] }}</span>
+        {% endif %}
+      
+        {% if project.status %}
+        <span class="status" title="{{ project.status }}">{{ icons.status[project.status] | default(icons.status.Unclassified) }}</span>
+        {% else %}
+        <span class="status" title="None">{{ icons.status['None'] }}</span>
+        {% endif %}
+      
+        {% if project.versioning %}
+        <span class="versioning" title="{{ project.versioning }}">{{ project.versioning }}</span>
+        {% else %}
+        <span class="versioning none" title="None"></span>
+        {% endif %}
+        
+        <span class="name">{{ project.name }}</span>
+        <span class="description">
+        {% if 'favorite' in project.tags %}❤️ {% endif %}
+        {{ project.description }}
+        </span>
+    
+    </div>
+    {% endfor %}
+</section>
+{% endfor %}

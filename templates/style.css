@@ -2,8 +2,10 @@
 
 body {
     font-family: Verdana, Arial, Helvetica, sans-serif;
-    width: 120ex;
+    box-sizing: border-box;
+    max-width: 120ex;
     margin: 1em auto;
+    padding: 0 1em;
 }
 body, td, th {
     font-size: 10pt;
@@ -58,6 +60,73 @@ section.filter-controls label:before {
     margin-left: -2em;
 }
 
+/* styles that apply to both tables and flexbox */
+
+div.project:hover, tr.project:hover {
+    background: wheat;
+}
+
+
+/* styles related to the project flexbox */
+
+div.project {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 0.5em;
+}
+
+div.project > span {
+    margin-right: 0.5ex;
+}
+
+div.project .date {
+    width: 13ex;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+div.project .type {
+    width: 3ex;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+.has-alt-types div.project .type {
+    width: 7ex;
+    text-align: center;
+}
+div.project .status {
+    width: 3ex;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+div.project .versioning {
+    width: 3ex;
+    flex-grow: 0;
+    flex-shrink: 0;
+}
+div.project .name {
+    width: 30ex;
+    flex-grow: 1;
+}
+div.project .description {
+    width: 70ex;
+    flex-grow: 1;
+}
+
+@media only screen 
+  and (min-device-width: 320px) 
+  and (max-device-width: 480px)
+  and (-webkit-min-device-pixel-ratio: 2)
+  and (orientation: portrait) {
+    div.project {
+        flex-wrap: wrap;
+        margin-bottom: 1em;
+    }
+    div.project .description {
+        font-style: italic;
+        color: #444;
+    }
+}
+
 /* styles related to the project table */
 
 table {
@@ -66,9 +135,6 @@ table {
 }
 tr {
     min-height: 2em;
-}
-tr.project:hover {
-    background: wheat;
 }
 th {
     text-align: left;
