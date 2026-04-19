@@ -193,17 +193,17 @@ def main(args=None):
             continue
     return result
         
-def offer_to_create_configuration_files(path):
-    print('no %s/ folder found. Would you like to create one? [y] ' % path, end='')
+def offer_to_create_configuration_files(config_dir):
+    print('no %s/ folder found. Would you like to create one? [y] ' % config_dir, end='')
     stdout.flush()
     reply = stdin.readline()
     if len(reply.strip()) == 0 or reply[0].lower() == 'y':
-        create_configuration_folder(path)
+        create_configuration_folder(config_dir)
         
-def create_configuration_folder(path):
-    print('creating %s' % path)
-    mkdir(path)
-    create_configuration_file(join(path, 'config.txt'), '''
+def create_configuration_folder(config_dir):
+    print('creating %s' % config_dir)
+    mkdir(config_dir)
+    create_configuration_file(join(config_dir, 'config.txt'), '''
         # Edit this configuration text file, then run bin/configure.py
         # to convert it to a JSON file.
         
@@ -254,7 +254,7 @@ def create_configuration_folder(path):
         author: None
         email: None
     ''')
-    create_values_file(join(path, 'fields.txt'), '''
+    create_values_file(join(config_dir, 'fields.txt'), '''
         # Edit this configuration text file, then run bin/configure.py
         # to convert it to a JSON file.
         #
@@ -284,7 +284,7 @@ def create_configuration_folder(path):
         git_host: text
         git_origin: text
     ''')
-    create_values_file(join(path, 'type_values.txt'), '''
+    create_values_file(join(config_dir, 'type_values.txt'), '''
         # List your project-type values here, then run bin/configure.py
         # to convert it to a JSON file.
         #
@@ -305,7 +305,7 @@ def create_configuration_folder(path):
         🕸️ Website, Web App
         🔧 Admin, Sysadmin, Webadmin
     ''')
-    create_values_file(join(path, 'type_patterns.txt'), '''
+    create_values_file(join(config_dir, 'type_patterns.txt'), '''
         # List your project-type glob patterns here, then run bin/configure.py
         # to convert it to a JSON file.
         #
@@ -320,7 +320,7 @@ def create_configuration_folder(path):
         Notes: *Notes *Quotes *Repairs
         Documents: *.pages *.numbers
     ''')
-    create_values_file(join(path, 'status_values.txt'), '''
+    create_values_file(join(config_dir, 'status_values.txt'), '''
         # List your project-status values here, then run bin/configure.py
         # to convert it to a JSON file.
         #
