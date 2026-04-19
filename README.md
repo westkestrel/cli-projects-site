@@ -52,7 +52,7 @@ and finally
 sudo mkdir /Library/WebServer/Documents/projects
 sudo chown $(whoami) /Library/WebServer/Documents/projects
 sudo apachectl -t && sudo apachectl restart
-bin/build.py # this reads your project folders and builds a website
+bin/build_projects_website.py # this reads your project folders and builds a website
 ```
 
 and then open [http://localhost/projects](http://localhost/projects) in a web browser.
@@ -84,24 +84,26 @@ by GitHub.
 
 ## Command-Line Interface
 
-*Run the scripts from the top-level folder e.g., `cd ~/Projects; bin/build.py`, **not**
-from within the bin folder itself.*
-
 ```
-bin/configure.py
+bin/configure_projects_website.py
 ```
 
-Reads the .txt files in the config folder and writes out corresponding .json files.
+Reads the .txt files in the config folder and writes out corresponding .json files. Also,
+if you do not have a config/ folder yet it will offer to create one for you and populate
+it with configuration files.
+
+*Tab-completion is your friend. Type `bin/co` and press the Tab key and it will*
+*autocomplete the full command name.*
 
 ```
-bin/scan.py
+bin/scan_projects_for_website.py
 ```
 
 Reads the README files in your **projects** folder tree, updates the .json files in the
 **data** folder. By default, this also runs the configure script. Pass -k/--skip-preflight
 to bypass this.
 
-``` bin/build.py ```
+``` bin/build_projects_website.py ```
 
 Reads the .json files in the **data** folder, writes a **library.json** file, then uses
 that file and the **templates** folder to populate the **website** folder. By default,
@@ -127,7 +129,7 @@ website_dir: /Library/WebServer/Documents/projects
 ```
 
 Note that if you have only changed your configuration you can skip the (relatively long)
-project-folder-scan process by running `bin/build.py --skip-scan` or (`-S`).
+project-folder-scan process by running `bin/build_projects_website.py --skip-scan` or (`-S`).
 
 ## The Website
 
@@ -175,11 +177,12 @@ project dirctories.  This is convenient when you are working on a single project
 so when you are working on the projects website and wanting to update several projects at
 once.
 
-If you run `bin/scan.py -b` (or `bin/build.py -b`) then the script will generate files
-into the *data/briefs/* folder, one file per project group. These are simple text files
-listing the project-folder paths followed by all of the metadata key-value pairs.
+If you run `bin/scan_projects_for_website.py -b` (or `bin/build_projects_website.py -b`)
+then the script will generate file into the *data/briefs/* folder, one file per project
+group. These are simple text files listing the project-folder paths followed by all of the
+metadata key-value pairs.
 
-You can edit these files, and when you build the website with `bin/build.py [-S|-k]` your
-edits will override the values extracted from the project README and METADATA files.  You
-can run `bind/scan.py -B` or `bin/build.py -B` to update the README and METADATA files
-with 
+You can edit these files, and when you build the website with
+`bin/build_projects_website.py [-S|-k]` your edits will override the values extracted from
+the project README and METADATA files.  You can run `bind/scan.py -B` or `bin/build.py -B`
+to update the README and METADATA files with 
