@@ -143,6 +143,7 @@ class Library:
             self.root['buckets'] = OrderedDict()
             
         data = json.load(content, object_pairs_hook=OrderedDict)
+        has_alt_type = False
         for project in data:
         
             # if we preflighted, scan.py:main() will have applied the briefs, but
@@ -151,6 +152,9 @@ class Library:
                 self.brief_manager.update_project(project)
             elif hasattr(options, 'skip_scan') and options.skip_scan:
                 self.brief_manager.update_project(project)
+                
+            # detect if this bucket contains any alt types
+            if 'alt_type' in project: has_alt_type = True
             
             # if we have inferred_x but no x, then set x = inferred_x
             if 'created' in project and 'commenced' not in project:
@@ -219,6 +223,9 @@ class Library:
             except KeyError: pass
                 
         bucket_name = bucket_name.replace('--', '/').replace('--', '/')
+        if has_alt_type:
+            if 'has_alt_types' not in self.root: self.root['has_alt_types'] = OrderedDict()
+            self.root['has_alt_types'][basename(bucket_name)] = True
         self.root['buckets'][basename(bucket_name)] = data
         
     def process_unclassified_values(self):
