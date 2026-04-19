@@ -4,6 +4,13 @@
     Command-click to show or hide everything.
 </p>
 
+<p class="navigation bucket-navigation">
+Jump to
+{% for bucket in buckets | reverse %}
+<a href="#b-{{bucket | urlize}}">{{bucket}}</a>
+{% endfor %}
+</p>
+
 <table class="filterbox-data filter-type filter-status filter-meta">
 <tr class="header">
   <th class="date"><span>Date</span></th>
@@ -16,7 +23,7 @@
 
 {% for bucket in buckets | reverse %}
 <tbody class="collapsible-section">
-<tr class="bucket">
+<tr id="b-{{bucket | urlize}}" class="bucket">
   <th colspan="5">
     {{ bucket }}
   </th>

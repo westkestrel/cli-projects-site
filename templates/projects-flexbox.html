@@ -4,6 +4,13 @@
     Command-click to show or hide everything.
 </p>
 
+<p class="navigation bucket-navigation">
+Jump to
+{% for bucket in buckets | reverse %}
+<a href="#b-{{bucket | urlize}}">{{bucket}}</a>
+{% endfor %}
+</p>
+
 {% for bucket in buckets | reverse %}
 {% if has_alt_types %}
 {% set alt_type_class = ' has-alt-types' %}
@@ -11,7 +18,7 @@
 {% set alt_type_class = '' %}
 {% endif %}
 <section class="bucket collapsible-section filterbox-data filter-type filter-status filter-meta{{alt_type_class}}">
-    <h3>{{ bucket }}</h3>
+    <h3 id="b-{{bucket | urlize}}">{{ bucket }}</h3>
     {% if config.alphabetic_project_sort | lower == 'true' %}
         {% set projectList = buckets[bucket] | sort(attribute='name', case_sensitive=False) %}
     {% else %}

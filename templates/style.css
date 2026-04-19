@@ -62,6 +62,13 @@ section.filter-controls label:before {
 
 /* styles that apply to both tables and flexbox */
 
+.bucket-navigation a {
+    color: inherit;
+}
+.bucket-navigation a:hover {
+    color: blue;
+}
+
 div.project:hover, tr.project:hover {
     background: wheat;
 }
