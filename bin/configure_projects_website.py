@@ -246,7 +246,13 @@ def create_configuration_files(config_dir, confirm_paths=False):
     projects_root_dir = '~/Projects'
     data_dir = unexpanduser(config.data_dir)
     template_dir = unexpanduser(config.template_dir)
-    website_dir = unexpanduser(config.website_dir)
+    if exists(expanduser('~/Sites/projects')):
+        website_dir = '~/Sites/projects'
+    elif exists('/Library/WebServer/DocumentRoot/projects'):
+        website_dir = '/Library/WebServer/DocumentRoot/projects'
+    else:
+        website_dir = unexpanduser(realpath('./website'))
+        
     if confirm_paths:
         projects_root_dir = prompt('Where do your projects reside?', projects_root_dir)
         website_dir = prompt('Where will the website reside?', website_dir)
