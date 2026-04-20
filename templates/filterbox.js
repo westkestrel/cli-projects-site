@@ -83,7 +83,45 @@ const wireUpCheckboxes = () => {
     const cssRules = []
     const filters = document.getElementsByClassName('filterbox-controls')
     var metaKey = false
-    const captureMetaKey = event => { metaKey = event.metaKey }
+    var justPerformedLongPress = false
+    var timeout = null
+    const hit = event => {
+        metaKey = event.metaKey
+        justPerformedLongPress = false
+        if (timeout) clearTimeout(timeout)
+        timeout = setTimeout(longPress, 1000, event)
+        return false
+    }
+    const release = event => {
+        metaKey = event.metaKey
+        if (timeout) {
+            clearTimeout(timeout)
+            tiemout = null
+        }
+        return false
+    }
+    const getHtmlFor = node => {
+        if (!node) return null
+        const id = node.getAttribute('for')
+        if (id) return id
+        return getHtmlFor(node.parentNode)
+    }
+    const longPress = event => {
+        timeout = null
+        metaKey = true
+        const htmlFor = getHtmlFor(event.target)
+        const checkbox = htmlFor ? document.getElementById(htmlFor) : event.target
+        if (!checkbox) {
+            console.error('no checkbox is associated with the event', event)
+            return false
+        }
+        checkbox.checked = !checkbox.checked
+        const changeEvent = new Event('change')
+        changeEvent.target = checkbox
+        checkbox.dispatchEvent(changeEvent)
+        justPerformedLongPress = true
+        return false
+    }
     for (filter of filters) {
         const filterType = filter.getAttribute('class').split(' ').filter(x => x.startsWith('filter-'))[0]
         if (!filterType) {
@@ -108,12 +146,12 @@ const wireUpCheckboxes = () => {
             const filterClassName = filterValues.join(' ')
             if (!toggleId) { toggle.setAttribute('id', filterId) }
             if (!toggle.getAttribute('class')) { toggle.setAttribute('class', filterClassName) }
-            label.setAttribute('for', toggleId || filterId)
-            toggle.addEventListener('mousedown', captureMetaKey)
-            toggle.addEventListener('mouseup', captureMetaKey)
-            label.addEventListener('mousedown', captureMetaKey)
-            label.addEventListener('mouseup', captureMetaKey)
-            toggle.addEventListener('change', event => {
+            const stateChange = event => {
+                if (justPerformedLongPress) {
+                    event.target.checked = !event.target.checked
+                    justPerformedLongPress = false
+                    return // if we just toggled state due to long press, do NOT re-toggle it for the button-release
+                }
                 if (metaKey) {
                     const wasChecked = event.target.checked
                     var allOthersWereChecked = true
@@ -134,7 +172,17 @@ const wireUpCheckboxes = () => {
                 } else {
                     setVisibility(filterType, filterClassName, event.target.checked)
                 }
-            })
+            }
+            label.setAttribute('for', toggleId || filterId)
+            toggle.addEventListener('mousedown', hit)
+            toggle.addEventListener('mouseup', release)
+            label.addEventListener('mousedown', hit)
+            label.addEventListener('mouseup', release)
+            toggle.addEventListener('touchstart', hit)
+            toggle.addEventListener('touchend', release)
+            label.addEventListener('touchstart', hit)
+            label.addEventListener('touchend', release)
+            toggle.addEventListener('change', stateChange)
             toggle.checked = true
             for (filterValue of filterValues) {
                 filterValue = digitsToWords(filterValue)

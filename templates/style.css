@@ -60,6 +60,13 @@ section.filter-controls label:before {
     margin-left: -2em;
 }
 
+section.filter-controls input,
+section.filter-controls label {
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+}
+
+
 /* styles that apply to both tables and flexbox */
 
 .bucket-navigation a {
