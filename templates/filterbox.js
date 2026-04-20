@@ -153,20 +153,28 @@ const wireUpCheckboxes = () => {
                     return // if we just toggled state due to long press, do NOT re-toggle it for the button-release
                 }
                 if (metaKey) {
+                    // if the user command-clicks on a checkbox we have custom selection behaviour
+                    // - if any other checkbox is selected, we "solo" the clicked checkbox,
+                    //   selecting it and deselecting all others.
+                    // - if the element is presently soloed, we select ALL checkbox,
+                    //   including the one that was just checked.
+                    // In other words, command-clicking an element shows only its items.
+                    // Command-clicking again undoes this and shows everything.
                     const wasChecked = event.target.checked
-                    var allOthersWereChecked = true
+                    var anyOthersWereChecked = false
                     for (t of toggles) {
                         if (t.getAttribute('id') != event.target.getAttribute('id')) {
-                            allOthersWereChecked = allOthersWereChecked && t.checked
+                            anyOthersWereChecked = anyOthersWereChecked || t.checked
                         }
                     }
+                    console.log('anyOthersWereChecked', anyOthersWereChecked)
                     for (t of toggles) {
                         if (t.getAttribute('id') != event.target.getAttribute('id')) {
-                            t.checked = !allOthersWereChecked
-                            setVisibility(filterType, t.getAttribute('class'), !allOthersWereChecked)
+                            t.checked = !anyOthersWereChecked
+                            setVisibility(filterType, t.getAttribute('class'), !anyOthersWereChecked)
                         } else {
-                            t.checked = !wasChecked
-                            setVisibility(filterType, filterClassName, t.checked)
+                            t.checked = true
+                            setVisibility(filterType, filterClassName, true)
                         }
                     }
                 } else {
