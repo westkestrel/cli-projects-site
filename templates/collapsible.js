@@ -8,40 +8,43 @@
  
 const collapsibleBootstrap = () => {
 
-const getLocalStorageKey = (element) => {
-    if (!element) return 'collapse-NULL'
-    return'collapse-' + element.innerHTML.replace(/<.*?>/g, '').replace(/\W+/g, '-')
+/**
+ * Given <table><thead><tr><th>...</th></tr></thead></table>, returns the th element.
+ */
+const getFirstInnermostElement = element => {
+    if (!element.firstElementChild) return element
+    return getFirstInnermostElement(element.firstElementChild)
 }
 
-const toggle = (event) => {
-    var container = event.target
-    while (container && (container.getAttribute('class') || '').indexOf('collapsible-section') == -1) {
-        container = container.parentElement
-    }
-    if (!container) {
-        console.error('no collapsible-section found!')
-        return
-    }
-    const shouldCollapse = container.getAttribute('class').split(' ').indexOf('collapsed') === -1
-    const containers = event.metaKey ? document.getElementsByClassName('collapsible-section') : [container]
-    for (container of containers) {
-        window.localStorage.setItem(getLocalStorageKey(container.firstElementChild), shouldCollapse)
-        const classNames = container.getAttribute('class').split(' ').filter(s => s != 'collapsed')
-        if (shouldCollapse) {
-            classNames.push('collapsed')
-        }
-        container.setAttribute('class', classNames.join(' '))
+const setCollapsed = (section, flag) => {
+    const classNames = section.getAttribute('class').split(/ +/).filter(s => s != 'collapsed' && s != 'expanded')
+    if (flag) classNames.push('collapsed')
+    else classNames.push('expanded')
+    section.setAttribute('class', classNames.join(' '))
+}
+
+const makeOnChangeHandler = section => {
+    return event => {
+        setCollapsed(section, !event.target.checked)
     }
 }
 
 const wireUpCollapsibles = () => {
     const collapsibles = document.getElementsByClassName('collapsible-section')
     for (section of collapsibles) {
-        const key = getLocalStorageKey(section.firstElementChild)
-        section.firstElementChild.addEventListener('mouseup', toggle)
-        if (window.localStorage.getItem(key) == 'true') {
-            section.setAttribute('class', section.getAttribute('class') + ' collapsed')
-        }
+        const innermost = getFirstInnermostElement(section)
+        const id = 's-' + innermost.innerHTML.toLocaleLowerCase().replace(/\W/g, '-')
+        const input = document.createElement('input')
+        input.setAttribute('type', 'checkbox')
+        input.setAttribute('id', id)
+        input.checked = true
+        const label = document.createElement('label')
+        label.setAttribute('for', id)
+        label.innerHTML = innermost.innerHTML
+        innermost.innerHTML = ''
+        innermost.appendChild(input)
+        innermost.appendChild(label)
+        input.addEventListener('change', makeOnChangeHandler(section))
     }
     cssRules = `
         .collapsible-section.collapsed > :first-child {
