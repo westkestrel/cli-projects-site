@@ -7,10 +7,10 @@
     {% for field_name in ['type', 'status'] %}
     <div>
         <h2>Project {{ field_name | capitalize }}</h2>
-        <ul class="filterbox-controls filter-{{ field_name }}">
+        <ul class="checkbox-radio-group filterbox-controls filter-{{ field_name }}">
             {% for group in iconic_fields[field_name] %}
             <li>
-                <input type="checkbox" }}"/>
+                <input type="checkbox" checked />
                 <label>
                     <span class="icon">{{ group.icon }}</span>
                     <span class="text">{{ group.name }}{{ group.names | join(', ') }}</span>
@@ -19,7 +19,7 @@
             {% endfor %}
             {% if unclassified[field_name] %}
             <li>
-                <input type="checkbox" }}"/>
+                <input type="checkbox" checked />
                 <label>
                     <span class="icon">{{ icons[field_name].Unclassified }}</span>
                     <span class="text">{{ unclassified[field_name] | join(', ') }}</span>
@@ -27,7 +27,7 @@
             </li>
             {% endif %}
             <li>
-                <input type="checkbox" }}"/>
+                <input type="checkbox" checked />
                 <label>
                     <span class="icon">{{ icons[field_name].None }}</span>
                     <span class="text">No {{ field_name | capitalize }}</span>
