@@ -51,6 +51,12 @@
  * If you do use these files you must include them *after* this file, so that this file's
  * setup will have created the checkbox html elements (and attached its event listeners)
  * before those files attempt to work with them.
+ *
+ * ***
+ *
+ * This filterbox.js file also pairs with any of the hide-checkboxes-and-*.css
+ * CSS files to decorate the controls with something other than a simple checkbox.
+ *
  */
  
 const filterboxBootstrap = () => {

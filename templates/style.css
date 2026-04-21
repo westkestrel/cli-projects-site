@@ -27,6 +27,7 @@ p + ul {
     margin-block-start: 0.5em;
 }
 
+{% include 'hide-checkboxes-and-dim-labels.css' %}
 /* styles related to the row-visibility controls */
 
 p.instructions {
@@ -173,13 +174,6 @@ td.type {
 td.alt-type {
     min-width: 4em;
     text-align: right;
-}
-
-input[type=checkbox] {
-    display: none;
-}
-input:not(:checked) + label {
-    opacity: 0.25;
 }
 
 ul.filterbox-controls {

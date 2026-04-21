@@ -1,0 +1,17 @@
+/*
+ * Given a DOM structure like
+ *      <ul class="hide-checkboxes-and-dim-labels">
+ *          <li><input type="checkbox" id="a"><label for="a">My Label</label></li>
+ *      </ul>
+ *
+ * These CSS rules will hide the checkbox and will instead dim the label text when
+ * the checkbox is unchecked.
+ */
+ 
+.hide-checkboxes-and-dim-labels input[type=checkbox] {
+    display: none;
+}
+.hide-checkboxes-and-dim-labels input:not(:checked) + label {
+    opacity: 0.25;
+}
+
