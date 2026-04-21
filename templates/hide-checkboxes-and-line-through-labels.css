@@ -1,0 +1,17 @@
+/*
+ * Given a DOM structure like
+ *      <ul class="hide-checkboxes-and-line-through-labels">
+ *          <li><input type="checkbox" id="a"><label for="a">My Label</label></li>
+ *      </ul>
+ *
+ * These CSS rules will hide the checkbox and will instead dim the label text and draw
+ * a line through it when the checkbox is unchecked.
+ */
+ 
+.hide-checkboxes-and-line-through-labels input[type=checkbox] {
+    display: none;
+}
+.hide-checkboxes-and-line-through-labels input[type=checkbox]:not(:checked) + label {
+    color: gray;
+    text-decoration: line-through;
+}
