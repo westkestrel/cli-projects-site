@@ -29,6 +29,7 @@ p + ul {
 
 {% include 'hide-checkboxes-and-dim-labels.css' %}
 {% include 'hide-checkboxes-and-line-through-labels.css' %}
+{% include 'hide-checkboxes-and-use-disclosures.css' %}
 
 /* styles related to the row-visibility controls */
 

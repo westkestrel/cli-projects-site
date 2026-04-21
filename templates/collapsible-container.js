@@ -63,13 +63,6 @@ const wireUpCollapsibles = () => {
         input.addEventListener('change', makeOnChangeHandler(section))
     }
     cssRules = `
-        .collapsible-container.collapsed > :first-child {
-            color: gray;
-        }
-        .collapsible-container:not(.collapsed) > :first-child:hover,
-        .collapsible-container.collapsed > :first-child:not(:hover) {
-            text-decoration: line-through;
-        }
         .collapsible-container.collapsed > :not(:first-child) {
             display: none;
         }

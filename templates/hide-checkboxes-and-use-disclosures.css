@@ -1,0 +1,37 @@
+/*
+ * Given a DOM structure like
+ *      <ul class="hide-checkboxes-and-use-disclosures">
+ *          <li><input type="checkbox" id="a"><label for="a">My Label</label></li>
+ *      </ul>
+ *
+ * These CSS rules will hide the checkbox and will instead draw a disclosure triangle.
+ * When the checkbox is checked and unchecked the triangle will animate a rotation from
+ * pointing right to pointing down.
+ */
+ 
+@keyframes hide-checkboxes-and-use-disclosures-opening {
+    from { rotate: 0deg }
+    to { rotate: 90deg }
+}
+@keyframes hide-checkboxes-and-use-disclosures-closing {
+    from { rotate: 90deg }
+    to { rotate: 0deg }
+}
+.hide-checkboxes-and-use-disclosures input[type=checkbox] {
+    display: none;
+}
+.hide-checkboxes-and-use-disclosures input[type=checkbox] + label::before {
+    display: inline-block;
+    content: "►";
+    margin-right: 0.5em;
+}
+.hide-checkboxes-and-use-disclosures input[type=checkbox]:not(:checked) + label::before {
+    rotate: 0deg;
+    animation-name: hide-checkboxes-and-use-disclosures-closing;
+    animation-duration: 0.5s;
+}
+.hide-checkboxes-and-use-disclosures input[type=checkbox]:checked + label::before {
+    rotate: 90deg;
+    animation-name: hide-checkboxes-and-use-disclosures-opening;
+    animation-duration: 0.5s;
+}
