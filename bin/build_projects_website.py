@@ -205,10 +205,8 @@ class Library:
             type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
             if 'alt_type' in project:
                 alt_type_class = re.sub(r'[\W_]+', '-', project['alt_type']).lower().strip('-')
-                combo_type_class = '%s-and-%s' % (type_class, alt_type_class)
             else:
                 alt_type_class = ''
-                combo_type_class = ''
             for key, value in {
                 '0': 'zero-', '1': 'one-', '2': 'two-', '3': 'three-', '4': 'four-',
                 '5': 'five-', '6': 'six-', '7': 'seven-', '8': 'eight-', '9': 'nine-'
@@ -216,7 +214,7 @@ class Library:
                 type_class = type_class.replace(key, value)
                 alt_type_class = alt_type_class.replace(key, value)
             status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
-            css_classes = filter(lambda s: s != '', [type_class, alt_type_class, combo_type_class, status_class])
+            css_classes = filter(lambda s: s != '', [type_class, alt_type_class, status_class])
             project['css_class'] = ' '.join(css_classes).strip()
             try: type_icons = self.root['icons']['type']
             except KeyError: type_icons = {}

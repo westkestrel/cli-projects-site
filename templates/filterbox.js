@@ -56,10 +56,52 @@
 const filterboxBootstrap = () => {
 
 /**
+ * By default the script looks for combo values, but you can disable this if you
+ * do not use combos and have a sufficiently-large data set that the search is
+ * causing performance problems.
+ *
+ * A combo is a data class that contains more than one of the filtered values, e.g.,
+ *      <div class="filterbox-controls filter-traits">
+ *        <div><input type="checkbox"><label>Eggs</label></div>
+ *        <div><input type="checkbox"><label>Lactation</label></div>
+ *        <div><input type="checkbox"><label>Scales</label></div>
+ *      </div>
+ *      <ul class="filterbox-data">
+ *        <li class="lactation">Cat<li>
+ *        <li class="eggs">Robin<li>
+ *        <li class="eggs lactation">Platypus<li>
+ *        <li class="scales">Snake<li>
+ *      </ul>
+ *
+ * Without looking for combos, checking "Eggs" and not "Lactation" will result
+ * in both "Cat" and "Platypus" being hidden due to the simple CSS rules
+ *      .filterbox-data.filter-traits.hide-eggs .eggs { display: none }
+ *      .filterbox-data.filter-traits.hide-lactation .lactation { display: none }
+ *      .filterbox-data.filter-traits.hide-scales .scales { display: none }
+ *
+ * With combos enabled, checking "Eggs" and not "Lactation" will reveal both
+ * "Robin" and "Platypus" because of a more sophisticated set of rules
+ *      .filterbox-data.filter-traits.hide-eggs.hide-lactations .eggs.lactation { display: none }
+ *      .filterbox-data.filter-traits.hide-eggs .eggs:not(.eggs.lactation) { display: none }
+ *      .filterbox-data.filter-traits.hide-lactation .lactation:not(.eggs.lactation) { display: none }
+ *      .filterbox-data.filter-traits.hide-scales .scales { display: none }
+ *
+ * Note that checking "eggs" and unchecking "scales" hides the snake because the "Snake"
+ * line item does not have the "eggs" css class (though it probably should). If it did,
+ * then rules would have been constructed to handle that scenario as well.
+ *
+ * Unfortunately, the rules would not work and the snake would still be hidden. This is
+ * a known bug -- the "hiding .lactation without .eggs.lactation" rule would hide the
+ * snake.  At the moment if you are going to have combos no two combos can have
+ * overlapping elements.
+ */
+const shouldLookForCombos = true
+
+/**
  * Turn '3d' into 'three-d' and '32flavors' into 'three-two-flavors' since CSS class names
  * cannot begin with a digit.
  */
-const digitsToWords = (text) => {
+const digitsToWords = text => {
     return text
         .replace('0', 'zero-')
         .replace('1', 'one-')
@@ -71,6 +113,13 @@ const digitsToWords = (text) => {
         .replace('7', 'seven-')
         .replace('8', 'eight-')
         .replace('9', 'nine-')
+}
+
+/**
+ * Given '3 Musketeers' return 'three-musketeers'
+ */
+const textToCssClass = text => {
+    return digitsToWords(text).replace(/\W+/, '-').toLocaleLowerCase()
 }
 
 /**
@@ -117,6 +166,7 @@ const wireUpFilterControlContainer = (container, cssRules) => {
         console.error('filterbox-controls lacks a filter-TYPE class:', container)
         return
     }
+    var filterableValues = []
     const toggles = container.getElementsByTagName('input')
     for (toggle of toggles) {
         const toggleId = toggle.getAttribute('id')
@@ -131,6 +181,7 @@ const wireUpFilterControlContainer = (container, cssRules) => {
                 .replace(/:.*/, '')
                 .split(/, */)
                 .map(x => x.replace(/\W+/g, ' ').trim().replace(/ /g, '-'))
+        filterableValues.push(...filterValues)
         const filterId = `${filterType}-${filterValues.join('-')}`
         const filterClassName = filterValues.join(' ')
         if (!toggleId) { toggle.setAttribute('id', filterId) }
@@ -141,8 +192,37 @@ const wireUpFilterControlContainer = (container, cssRules) => {
         label.setAttribute('for', toggleId || filterId)
         toggle.addEventListener('change', stateChange)
         toggle.checked = true
-        for (filterValue of filterValues) {
-            filterValue = digitsToWords(filterValue)
+    }
+    if (shouldLookForCombos) {
+        const combos = new Set() // e.g., {'audio & video', 'photo & video'}
+        const classes = new Set(filterableValues.map(textToCssClass))
+        for (dataContainer of document.getElementsByClassName('filterbox-data')) {
+            for (dataElement of dataContainer.children) {
+                const cssClass = dataElement.getAttribute('class') || ''
+                const classNames = cssClass.split(/ +/).filter(s => classes.has(s))
+                if (classNames.length > 1) {
+                    const sortedClassNames = classNames.sort()
+                    combos.add(sortedClassNames.join(' & '))
+                }
+            }
+        }
+        const comboArrays = Array.from(combos).sort().map(c => c.split(' & ')) // e.g., [['audio', 'video'], ['photo', 'video']]
+        const comboValues = new Set(comboArrays.flat()) // e.g., {'audio', 'photo', 'video'}
+        for (filterValue of filterableValues.filter(v => !comboValues.has(v))) {
+            filterValue = textToCssClass(filterValue)
+            cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
+        }
+        for (combo of comboArrays) {
+            const comboClass = combo.join('.')
+            const hideClasses = combo.map(v => `.hide-${v}`).join('')
+            cssRules.push(`.filterbox-data.${filterType}${hideClasses} .${comboClass} { display: none }`)
+            for (filterValue of combo) {
+                cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue}:not(.${comboClass}) { display: none }`)
+            }
+        }
+    } else {
+        for (filterValue of filterableValues) {
+            filterValue = textToCssClass(filterValue)
             cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
         }
     }
