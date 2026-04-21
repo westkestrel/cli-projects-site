@@ -89,11 +89,6 @@ const filterboxBootstrap = () => {
  * Note that checking "eggs" and unchecking "scales" hides the snake because the "Snake"
  * line item does not have the "eggs" css class (though it probably should). If it did,
  * then rules would have been constructed to handle that scenario as well.
- *
- * Unfortunately, the rules would not work and the snake would still be hidden. This is
- * a known bug -- the "hiding .lactation without .eggs.lactation" rule would hide the
- * snake.  At the moment if you are going to have combos no two combos can have
- * overlapping elements.
  */
 const shouldLookForCombos = true
 
@@ -193,7 +188,14 @@ const wireUpFilterControlContainer = (container, cssRules) => {
         toggle.addEventListener('change', stateChange)
         toggle.checked = true
     }
-    if (shouldLookForCombos) {
+    if (!shouldLookForCombos) {
+        // without combos the hiding rules are very simple
+        for (filterValue of filterableValues) {
+            filterValue = textToCssClass(filterValue)
+            cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
+        }
+    } else {
+        // first, go through all data containers looking for combos
         const combos = new Set() // e.g., {'audio & video', 'photo & video'}
         const classes = new Set(filterableValues.map(textToCssClass))
         for (dataContainer of document.getElementsByClassName('filterbox-data')) {
@@ -208,22 +210,25 @@ const wireUpFilterControlContainer = (container, cssRules) => {
         }
         const comboArrays = Array.from(combos).sort().map(c => c.split(' & ')) // e.g., [['audio', 'video'], ['photo', 'video']]
         const comboValues = new Set(comboArrays.flat()) // e.g., {'audio', 'photo', 'video'}
+        
+        // second, emit the simple rules for values which are never part of a combo
         for (filterValue of filterableValues.filter(v => !comboValues.has(v))) {
             filterValue = textToCssClass(filterValue)
             cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
         }
+        
+        // third, emit rules for hiding a combo if all of its elements are hidden
         for (combo of comboArrays) {
             const comboClass = combo.join('.')
             const hideClasses = combo.map(v => `.hide-${v}`).join('')
             cssRules.push(`.filterbox-data.${filterType}${hideClasses} .${comboClass} { display: none }`)
-            for (filterValue of combo) {
-                cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue}:not(.${comboClass}) { display: none }`)
-            }
         }
-    } else {
-        for (filterValue of filterableValues) {
-            filterValue = textToCssClass(filterValue)
-            cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
+        
+        // finally, emit rules for hiding a row if it has some 
+        const comboClassArray = comboArrays.map(a => '.' + a.join('.')) // e.g., ['.audio.video', '.photo.video']
+        const notAnyCombo = comboClassArray.map(c => `:not(${c})`).join('')
+        for (filterValue of Array.from(comboValues).sort()) {
+            cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue}${notAnyCombo} { display: none }`)
         }
     }
 }
