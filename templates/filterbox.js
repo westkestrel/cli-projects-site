@@ -92,14 +92,14 @@ const setVisibility = (filterType, filterClassName, flag) => {
 
 const wireUpCheckboxes = () => {
     const cssRules = []
-    const filters = document.getElementsByClassName('filterbox-controls')
-    for (filter of filters) {
-        const filterType = filter.getAttribute('class').split(' ').filter(x => x.startsWith('filter-'))[0]
+    const filterControlContainers = document.getElementsByClassName('filterbox-controls')
+    for (container of filterControlContainers) {
+        const filterType = container.getAttribute('class').split(' ').filter(x => x.startsWith('filter-'))[0]
         if (!filterType) {
-            console.error('filterbox-controls lacks a filter-TYPE class:', filter)
+            console.error('filterbox-controls lacks a filter-TYPE class:', container)
             continue
         }
-        const toggles = filter.getElementsByTagName('input')
+        const toggles = container.getElementsByTagName('input')
         for (toggle of toggles) {
             const toggleId = toggle.getAttribute('id')
             const label = toggle.nextElementSibling
