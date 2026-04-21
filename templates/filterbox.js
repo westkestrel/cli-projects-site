@@ -55,6 +55,10 @@
  
 const filterboxBootstrap = () => {
 
+/**
+ * Turn '3d' into 'three-d' and '32flavors' into 'three-two-flavors' since CSS class names
+ * cannot begin with a digit.
+ */
 const digitsToWords = (text) => {
     return text
         .replace('0', 'zero-')
@@ -69,6 +73,15 @@ const digitsToWords = (text) => {
         .replace('9', 'nine-')
 }
 
+/**
+ * Adds a class to all filterbox-data containers to hide (or not hide) elements with
+ * the given filtered values for a given filter-value type. e.g. given 'animal', 'cat',
+ * and 'false', it will turn
+ *    <div class="filterbox-data animal">
+ * into
+ *    <div class="filterbox-data animale hide-cat">
+ * so that the CSS rules will hide all <div class="cat"> child elements.
+ */
 const setVisibility = (filterType, filterClassName, flag) => {
     const targetClassName = `filterbox-data ${filterType}`
     const filterContainers = document.getElementsByClassName(targetClassName)
@@ -90,44 +103,60 @@ const setVisibility = (filterType, filterClassName, flag) => {
     }
 }
 
-const wireUpCheckboxes = () => {
+/**
+ * Given an HTML container element, decorate any <input type="checkbox"> elements with
+ * change-event listeners that will toggle the visibility of corresponding data elements
+ * in any filterbox-data containers.
+ *
+ * The passed cssRules array will be populated with CSS rules that should be injected
+ * into the document's <head> to actually accomplish the visibility changes.
+ */
+const wireUpFilterControlContainer = (container, cssRules) => {
+    const filterType = container.getAttribute('class').split(' ').filter(x => x.startsWith('filter-'))[0]
+    if (!filterType) {
+        console.error('filterbox-controls lacks a filter-TYPE class:', container)
+        return
+    }
+    const toggles = container.getElementsByTagName('input')
+    for (toggle of toggles) {
+        const toggleId = toggle.getAttribute('id')
+        const label = toggle.nextElementSibling
+        const filterValues = toggleId
+            ? [toggleId]
+            : label.innerHTML
+                .replace(/<span class="text">(.*?)<\/span>\s*/m, '$1')
+                .replace(/<span class="icon">(.*?)<\/span>\s*/m, '')
+                .toLocaleLowerCase()
+                .replace(/ *[(].*[)]/, '')
+                .replace(/:.*/, '')
+                .split(/, */)
+                .map(x => x.replace(/\W+/g, ' ').trim().replace(/ /g, '-'))
+        const filterId = `${filterType}-${filterValues.join('-')}`
+        const filterClassName = filterValues.join(' ')
+        if (!toggleId) { toggle.setAttribute('id', filterId) }
+        if (!toggle.getAttribute('class')) { toggle.setAttribute('class', filterClassName) }
+        const stateChange = event => {
+            setVisibility(filterType, filterClassName, event.target.checked)
+        }
+        label.setAttribute('for', toggleId || filterId)
+        toggle.addEventListener('change', stateChange)
+        toggle.checked = true
+        for (filterValue of filterValues) {
+            filterValue = digitsToWords(filterValue)
+            cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
+        }
+    }
+}
+
+/**
+ * Locates all HTML container elements with class 'filterbox-controls' and wires up the
+ * checkboxes within them as visibility controls.
+ */
+const wireUpAllFilterControlContainers = () => {
     const cssRules = []
     const filterControlContainers = document.getElementsByClassName('filterbox-controls')
     for (container of filterControlContainers) {
-        const filterType = container.getAttribute('class').split(' ').filter(x => x.startsWith('filter-'))[0]
-        if (!filterType) {
-            console.error('filterbox-controls lacks a filter-TYPE class:', container)
-            continue
-        }
-        const toggles = container.getElementsByTagName('input')
-        for (toggle of toggles) {
-            const toggleId = toggle.getAttribute('id')
-            const label = toggle.nextElementSibling
-            const filterValues = toggleId
-                ? [toggleId]
-                : label.innerHTML
-                    .replace(/<span class="text">(.*?)<\/span>\s*/m, '$1')
-                    .replace(/<span class="icon">(.*?)<\/span>\s*/m, '')
-                    .toLocaleLowerCase()
-                    .replace(/ *[(].*[)]/, '')
-                    .replace(/:.*/, '')
-                    .split(/, */)
-                    .map(x => x.replace(/\W+/g, ' ').trim().replace(/ /g, '-'))
-            const filterId = `${filterType}-${filterValues.join('-')}`
-            const filterClassName = filterValues.join(' ')
-            if (!toggleId) { toggle.setAttribute('id', filterId) }
-            if (!toggle.getAttribute('class')) { toggle.setAttribute('class', filterClassName) }
-            const stateChange = event => {
-                setVisibility(filterType, filterClassName, event.target.checked)
-            }
-            label.setAttribute('for', toggleId || filterId)
-            toggle.addEventListener('change', stateChange)
-            toggle.checked = true
-            for (filterValue of filterValues) {
-                filterValue = digitsToWords(filterValue)
-                cssRules.push(`.filterbox-data.${filterType}.hide-${filterValue} .${filterValue} { display: none }`)
-            }
-        }
+        wireUpFilterControlContainer(container, cssRules)
     }
     const head = document.getElementsByTagName('head')[0]
     const style = document.createElement('style')
@@ -136,7 +165,7 @@ const wireUpCheckboxes = () => {
     head.appendChild(style)
 }
 
-window.addEventListener('load', wireUpCheckboxes)
+window.addEventListener('load', wireUpAllFilterControlContainers)
  
 }
 filterboxBootstrap()
