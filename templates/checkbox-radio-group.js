@@ -18,6 +18,11 @@
  * checkboxes in the group. If your change-handling code needs to know which checkbox
  * was actually clicked, you can check event.target.isSoloTarget; this will be true for
  * the checkbox the user clicked on and undefined for all the rest.
+ *
+ * ***
+ *
+ * This checkbox-radio-group.js file pairs very nicely with the stored-checkbox-state.js
+ * file, which preserves checkbox state across page-loads using local storage.
  */
  
 const radioCheckboxesBootstrap = () => {

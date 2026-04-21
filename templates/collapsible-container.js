@@ -4,6 +4,17 @@
  * If you decorate a container with class="collapsible-container" then its first child
  * becomes a clickable accordion control that will show or hide all of the remaining
  * elements of the section.
+ *
+ * ***
+ *
+ * This collapsible-container.js file pairs very nicely with the checkbox-radio-group.js
+ * file which will allow the user to command-click (or long-press) to collapse all 
+ * containers *except* the one they just selected, and with the stored-checkbox-state.js
+ * file which preserves checkbox state across page-loads using local storage.
+ *
+ * If you do use these files you must include them *after* this file, so that this file's
+ * setup will have created the checkbox html elements (and added its event listeners)
+ * before those files attempt to work with them.
  */
  
 const collapsibleContainerBootstrap = () => {
