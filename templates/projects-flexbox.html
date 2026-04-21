@@ -18,8 +18,9 @@ Jump to
 {% else %}
 {% set alt_type_class = '' %}
 {% endif %}
-<section class="bucket collapsible-container filterbox-data filter-type filter-status{{alt_type_class}}">
+<section class="bucket collapsible-container animated filterbox-data filter-type filter-status{{alt_type_class}}">
     <h3 id="b-{{bucket | urlize}}">{{ bucket }}</h3>
+    <div>
     {% if config.alphabetic_project_sort | lower == 'true' %}
         {% set projectList = buckets[bucket] | sort(attribute='name', case_sensitive=False) %}
     {% else %}
@@ -59,6 +60,7 @@ Jump to
     
     </div>
     {% endfor %}
+    </div>
 </section>
 {% endfor %}
 </div>

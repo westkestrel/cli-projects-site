@@ -5,6 +5,11 @@
  * becomes a clickable accordion control that will show or hide all of the remaining
  * elements of the section.
  *
+ * If you decorate a container with class="collapsible-container animated" then the
+ * expanding and collapsing will be animated. If you do this you will probably get best
+ * results if the collapsible container has exactly two children -- the collapse-control
+ * and a container that holds all of the other content.
+ *
  * ***
  *
  * This collapsible-container.js file pairs very nicely with the checkbox-radio-group.js
@@ -63,8 +68,18 @@ const wireUpCollapsibles = () => {
         input.addEventListener('change', makeOnChangeHandler(section))
     }
     cssRules = `
-        .collapsible-container.collapsed > :not(:first-child) {
+        .collapsible-container.collapsed:not(.animated) > :not(:first-child) {
             display: none;
+        }
+        .collapsible-container.animated.collapsed > :not(:first-child) {
+            overflow: hidden;
+            max-height: 0px;
+            transition: max-height 0.5s ease
+        }
+        .collapsible-container.animated:not(.collapsed) > :not(:first-child) {
+            overflow: hidden;
+            max-height: 100vh;
+            transition: max-height 0.5s ease
         }
     `.replace(/\n {4,8}/g, '\n')
     const head = document.getElementsByTagName('head')[0]
