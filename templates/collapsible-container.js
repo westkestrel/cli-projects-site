@@ -1,12 +1,12 @@
 /**
- * Collapsible allows you to expand and collapse sections with the click of the mouse.
+ * Collapsible Containers allow you to expand and collapse dom with the click of the mouse.
  *
- * If you decorate a container with class="collapsible-section" then its first child
+ * If you decorate a container with class="collapsible-container" then its first child
  * becomes a clickable accordion control that will show or hide all of the remaining
  * elements of the section.
  */
  
-const collapsibleBootstrap = () => {
+const collapsibleContainerBootstrap = () => {
 
 /**
  * Given <table><thead><tr><th>...</th></tr></thead></table>, returns the th element.
@@ -30,7 +30,7 @@ const makeOnChangeHandler = section => {
 }
 
 const wireUpCollapsibles = () => {
-    const collapsibles = document.getElementsByClassName('collapsible-section')
+    const collapsibles = document.getElementsByClassName('collapsible-container')
     for (section of collapsibles) {
         const innermost = getFirstInnermostElement(section)
         const id = 's-' + innermost.innerHTML.toLocaleLowerCase().replace(/\W/g, '-')
@@ -47,14 +47,14 @@ const wireUpCollapsibles = () => {
         input.addEventListener('change', makeOnChangeHandler(section))
     }
     cssRules = `
-        .collapsible-section.collapsed > :first-child {
+        .collapsible-container.collapsed > :first-child {
             color: gray;
         }
-        .collapsible-section:not(.collapsed) > :first-child:hover,
-        .collapsible-section.collapsed > :first-child:not(:hover) {
+        .collapsible-container:not(.collapsed) > :first-child:hover,
+        .collapsible-container.collapsed > :first-child:not(:hover) {
             text-decoration: line-through;
         }
-        .collapsible-section.collapsed > :not(:first-child) {
+        .collapsible-container.collapsed > :not(:first-child) {
             display: none;
         }
     `.replace(/\n {4,8}/g, '\n')
@@ -69,4 +69,4 @@ window.addEventListener('load', wireUpCollapsibles)
 
 }
 
-collapsibleBootstrap()
+collapsibleContainerBootstrap()
