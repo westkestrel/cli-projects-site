@@ -395,6 +395,20 @@ def create_configuration_files(config_dir, confirm_paths=False):
         💀 Abandoned: Abandoned after a fairly substantial investment
         🪦 Obsolete: Superceded by a newer version
     ''')
+    create_values_file(join(config_dir, 'tag_values.txt'), '''
+        # List your tag values here, then run bin/configure.py
+        # to convert it to a JSON file.
+        #
+        # Put tag descriptions in parenthesis or after a colon
+        # (if your description contains a comma you must use parenthesis)
+        #
+        # Comma-separated items will share an icon, but retain their names
+        # aka items will be renamed (i.e, "Photos" projects become "Photography")
+        
+        ❤️ Favorite (aka Favourite)
+        💵 Paid
+        💸 Unpaid
+    ''')
     
 def prompt(question, default_value):
     if default_value != None:

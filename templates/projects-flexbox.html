@@ -18,7 +18,7 @@ Jump to
 {% else %}
 {% set alt_type_class = '' %}
 {% endif %}
-<section class="bucket collapsible-container animated filterbox-data filter-type filter-status{{alt_type_class}}">
+<section class="bucket collapsible-container animated filterbox-data filter-type filter-status filter-tag{{alt_type_class}}">
     <h3 id="b-{{bucket | urlize}}">{{ bucket }}</h3>
     <div>
     {% if config.alphabetic_project_sort | lower == 'true' %}
@@ -54,7 +54,13 @@ Jump to
         
         <span class="name">{{ project.name }}</span>
         <span class="description">
-        {% if 'favorite' in project.tags %}❤️ {% endif %}
+        {% for tag in project.tags %}
+            {% if tag in icons.tag %}
+                {{ icons.tag[tag] }}
+            {% else %}
+                [{{tag}}] 
+            {% endif %}
+        {% endfor %}
         {{ project.description }}
         </span>
     

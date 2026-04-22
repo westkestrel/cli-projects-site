@@ -1,39 +1,14 @@
 <p class="instructions">
-    Click the <strong>type</strong>, <strong>status</strong>, or <strong>meta</strong> lines to toggle project visibility.
+    Click the <strong>type</strong>, <strong>status</strong>, or <strong>tag</strong> lines to toggle project visibility.
     Command-click or long-press to toggle non-matching projects.
 </p>
 
 <section class="hide-checkboxes-and-dim-labels filter-controls stored-checkbox-state">
-    {% for field_name in ['type', 'status'] %}
-    <div>
-        <h2>Project {{ field_name | capitalize }}</h2>
-        <ul class="checkbox-radio-group filterbox-controls filter-{{ field_name }}">
-            {% for group in iconic_fields[field_name] %}
-            <li>
-                <input type="checkbox" checked />
-                <label>
-                    <span class="icon">{{ group.icon }}</span>
-                    <span class="text">{{ group.name }}{{ group.names | join(', ') }}</span>
-                </label>
-            </li>
-            {% endfor %}
-            {% if unclassified[field_name] %}
-            <li>
-                <input type="checkbox" checked />
-                <label>
-                    <span class="icon">{{ icons[field_name].Unclassified }}</span>
-                    <span class="text">{{ unclassified[field_name] | join(', ') }}</span>
-                </label>
-            </li>
-            {% endif %}
-            <li>
-                <input type="checkbox" checked />
-                <label>
-                    <span class="icon">{{ icons[field_name].None }}</span>
-                    <span class="text">No {{ field_name | capitalize }}</span>
-                </label>
-            </li>
-        </ul>
+    <div class="column">
+    {% set field_name = 'type' %}{% include 'control-block.html' %}
     </div>
-    {% endfor %}
+    <div class="column">
+    {% set field_name = 'status' %}{% include 'control-block.html' %}
+    {% set field_name = 'tag' %}{% include 'control-block.html' %}
+    </div>
 </section>

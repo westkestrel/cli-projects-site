@@ -45,6 +45,7 @@ class TestLibrary(unittest.TestCase):
         }])
     
     def test_bucket(self):
+        self.maxDiff = None
         lib = Library(should_read_all=False)
         lib.process_bucket('2026', StringIO('''
             [
@@ -61,7 +62,7 @@ class TestLibrary(unittest.TestCase):
             ]
         '''.replace('\n        ', '').strip()))
         # print('GOT', json.dumps(lib.root, indent=4, ensure_ascii=False))
-        self.assertEqual(lib.root['buckets']['2026'], [{ 
+        self.assertEqual(json.loads(json.dumps(lib.root['buckets']['2026'])), [{ 
             'name': 'My Project',
             'abspath': '~/Projects/2026/My Project',
             'relpath': '2026/My Project',
@@ -72,5 +73,6 @@ class TestLibrary(unittest.TestCase):
             'type': 'Webapp',
             'status': 'Completed',
             'date': '15-Mar-2026',
-            'css_class': 'webapp completed',
+            'css_class': 'webapp completed no-tag',
+            'tags': [],
         }])

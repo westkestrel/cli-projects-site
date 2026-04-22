@@ -44,6 +44,11 @@ section.filter-controls {
     flex-direction: row;
 }
 
+section.filter-controls .column {
+    display: flex;
+    flex-direction: column;
+}
+
 section.filter-controls ul {
     padding-left: 0;
 }

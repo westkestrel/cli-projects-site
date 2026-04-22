@@ -51,6 +51,7 @@ class Library:
         self.brief_manager = BriefManager()
         self.unclassified_types = set()
         self.unclassified_statuses = set()
+        self.unclassified_tags = set()
 
         if should_read_all:
             self.brief_manager.read_briefs()
@@ -202,6 +203,11 @@ class Library:
             elif project['status'] == 'None': project_status = 'no-status'
             else: project_status = project['status']
             
+            if 'tags' not in project and 'tag' in project: project['tags'] = project['tag']
+            if 'tags' not in project: project_tags = 'no-tag'
+            elif project['tags'] == 'None': project_tags = 'no-tag'
+            else: project_tags = project['tags']
+            
             type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
             if 'alt_type' in project:
                 alt_type_class = re.sub(r'[\W_]+', '-', project['alt_type']).lower().strip('-')
@@ -214,18 +220,24 @@ class Library:
                 type_class = type_class.replace(key, value)
                 alt_type_class = alt_type_class.replace(key, value)
             status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
-            css_classes = filter(lambda s: s != '', [type_class, alt_type_class, status_class])
+            tags_class = re.sub(r'[\W_]+', '-', project_tags).lower().strip('-')
+            css_classes = filter(lambda s: s != '', [type_class, alt_type_class, status_class, tags_class])
             project['css_class'] = ' '.join(css_classes).strip()
             try: type_icons = self.root['icons']['type']
             except KeyError: type_icons = {}
             try: status_icons = self.root['icons']['status']
             except KeyError: status_icons = {}
+            try: tag_icons = self.root['icons']['tag']
+            except KeyError: tag_icons = {}
             if project_type not in type_icons:
                 self.unclassified_types.add(project_type)
             if project_status not in status_icons:
                 self.unclassified_statuses.add(project_status)
+            for tag in re.split(r'[, ]+', project_tags):
+                if tag not in tag_icons:
+                    self.unclassified_tags.add(tag)
                 
-            try: project['tags'] = re.split(r'[, ]+', project['tags'].lower().replace('favourite', 'favorite'))
+            try: project['tags'] = list(filter(lambda t: t != 'no-tag', re.split(r'[, ]+', project_tags)))
             except KeyError: pass
                 
         bucket_name = bucket_name.replace('--', '/').replace('--', '/')
@@ -238,8 +250,10 @@ class Library:
         self.root['unclassified'] = OrderedDict()
         if 'no-type' in self.unclassified_types: self.unclassified_types.remove('no-type')
         if 'no-status' in self.unclassified_statuses: self.unclassified_statuses.remove('no-status')
+        if 'no-tag' in self.unclassified_tags: self.unclassified_tags.remove('no-tag')
         self.root['unclassified']['type'] = sorted(self.unclassified_types)
         self.root['unclassified']['status'] = sorted(self.unclassified_statuses)
+        self.root['unclassified']['tag'] = sorted(self.unclassified_tags)
         
     def write(self, path):
         if options.verbose:
@@ -260,6 +274,8 @@ class Builder:
         if len(templates) == 0:
             print('**error: no template files found in %s' % template_dir, file=stderr)
         for template in templates:
+            if 'block' in template: continue
+            if 'hide-checkboxes-' in template: continue
             self.build(template, template.replace(template_dir, website_dir))
         return len(templates)
             
