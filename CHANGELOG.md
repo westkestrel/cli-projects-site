@@ -1,5 +1,54 @@
 # Projects-Website Change Log
 
+## 1.2.0 (21-Apr-2026)
+
+### Improved installation experience
+
+You can now install the package wherever you want and then simply symlink the *bin/* folder into your *~/Projects* folder. Then from with your projects folder you run any one of
+
+```
+mkdir config # optional
+bin/configure_projects_website.py
+bin/scan_projects_for_website.py
+bin/build_projects_website.py
+```
+
+The first time you run you will be prompted to populate the config folder you just created. If you did not create a config folder, you will be prompted to create (and populate) one next to the bin folder in its original, non-symlinked location.
+
+### New script names
+
+The script names are now much more verbose (e.g., *build_projects_website.py* rather than just *build.py*). This means that rather than the symlink described above you can just add the location of the *bin/* folder to your **PATH** environment variable and run the commands from any directory.
+
+### Improved user experience
+
+#### Filters
+
+You can now long-press in addition to Command-clicking to trigger the "select this and deselect everything else" behaviour, which improves the phone experience where there is no Command key.
+
+If a project has both a **type** and an **alt_type** then it will be shown if either value is selected in the filter area (in the previous version, if a project had two types then de-selecting either value would result in the project being hidden).
+
+#### Project List
+
+There is a list of project-group name links that the user can use to jump to specific project groups.  This navigation does affect browser history (so the user can the the back button to return to the previous scroll location) but does *not* affect the page URL.
+
+The table layout on the website has been replaced with a flexbox-based layout that leads to a much better experience when viewing the page on a phone.
+
+The project-group names are now checkbox labels rather than mere DOM elements with click handlers. This improves the site accessibility for people who  use a screen reader. *Unfortunately there does not appear to be a way to trigger either a command-click or a long-press using a screen reader.*
+
+The expanding and collapsing project groups is now animated, which makes the behavior more understandable.
+
+#### Tags
+
+If you add the metadata **tags: favorite** (or **favourite**) to a project then it will get a heart drawn in front of the project description. You use the tags_values.txt config file to define other tags and their icons.
+
+### Redaction
+
+Normally you run this script to create a website for your personal consumption. If you run the build script with `-r/--redact` then the *redact.txt* and *rename.txt* config files will be used to create a pruned and polished version for public consumption.
+
+### Improved code reusability
+
+The JavaScript code was completely rewritten into a more maintainable format.  In particular, each piece of functionality (using filter checkboxes to show & hide data rows, clicking section headers to collapse and expand the sections, recalling checkbox state across page reloads, etc.) is now encapsulated in its own isolated and well-documented .js file that can be used in other projects.
+
 ## 1.1.0 (17-Apr-2026)
 
 ### Project Briefs
