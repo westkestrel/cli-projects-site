@@ -36,6 +36,11 @@ def make_parser(description=__doc__):
         const=True,
         default=False,
         help='output the jinja2 commands')
+    parser.add_argument('-r', '--redact',
+        dest='redact', action='store_const',
+        const=True,
+        default=False,
+        help='redact projects, types, statuses, and tags found in redact.txt')
     parser.add_argument(
         dest='build_sources', action='store',
         default=list(),
@@ -276,13 +281,156 @@ class Library:
         with open(path, 'w', encoding='utf-8') as file:
             json.dump(self.root, file, indent=4, ensure_ascii=False)
             
+class Redactor:
+    def __init__(self, redactions=True, renamings=True):
+        if redactions == True:
+            redactfile = join(config.data_dir, 'redact.json')
+            try: redacted_words = json.load(open(redactfile, encoding='utf-8'))
+            except FileNotFoundError:
+                print('Fatal Error: Redaction file not found!', file=stderr)
+                exit(1)
+            self.redactions = set(redacted_words)
+        elif redactions == None:
+            self.redactions = set()
+        else:
+            self.redactions = set(redactions)
+            
+        globbed_redactions = filter(lambda r: '*' in r, self.redactions)
+        regex_redactions = map(lambda s: s.replace(r'[.|()]', r'[\1]').replace('?', '.').replace('*', '.*'), globbed_redactions)
+        self.redaction_regex = '^(%s)$' % '|'.join(regex_redactions)
+        if self.redaction_regex == '^()$': self.redaction_regex = None
+            
+        if renamings == True:
+            renamefile = join(config.data_dir, 'rename.json')
+            try: self.renamings = json.load(open(renamefile, encoding='utf-8'))
+            except FileNotFoundError:
+                self.renamings = dict()
+        elif renamings == None:
+            self.renamings = dict()
+        else:
+            self.renamings = renamings
+    
+    def redact_library(self, lib):
+        root = lib.root
+        self.redact_config(root['config'])
+        self.redact_buckets(root['buckets'])
+        self.redact_iconic_fields(root['iconic_fields'])
+        self.redact_icons(root['icons'])
+        
+    def redact_config(self, data):
+        redactions, renamings = self.redactions, self.renamings
+        for key, value in list(data.items()):
+            if type(value) == str and value in renamings:
+                value = renamings[value]
+                data[key] = value
+            if type(value) == str and value in redactions:
+                data[key] = ''
+        return data
+                    
+    def redact_buckets(self, buckets):
+        redactions, renamings = self.redactions, self.renamings
+        for bucket_name, bucket in list(buckets.items()):
+            if bucket_name in redactions:
+                self.redacting('entire bucket', 'bucket', bucket_name)
+                del buckets[bucket_name]
+                continue
+            if bucket_name in renamings:
+                del buckets[bucket_name]
+                bucket_name = renamings[bucket_name]
+                buckets[bucket_name] = bucket
+            redacted = list(filter(lambda p: p != None, map(self.redact_project, bucket)))
+            if len(redacted) == len(bucket): pass
+            elif len(redacted) == 0 or bucket_name in redactions: del buckets[bucket_name]
+            else: buckets[bucket_name] = redacted
+        return buckets
+            
+    def redact_project(self, project):
+        redactions, renamings = self.redactions, self.renamings
+        for key in ['name', 'type', 'alt_type', 'status', 'tag']:
+            try:
+                if project[key] in redactions: return self.redacting(project['name'], 'key', project[key])
+                if project[key] in renamings: project[key] = renamings[project[key]]
+            except KeyError: pass
+        if 'tags' not in project: return project
+        for tag in project['tags']:
+            if tag in redactions: return self.redacting(project['name'], 'tag', tag)
+        tags = list(filter(lambda t: t != None, map(self.redact_tag, project['tags'])))
+        project['tags'] = tags
+        if self.redaction_regex != None:
+            if re.match(self.redaction_regex, project['name']): return None
+            if re.match(self.redaction_regex, project['description']): return None
+        return project
+        
+    def redact_tag(self, tag):
+        if tag in self.redactions: return self.redacting('project tag', 'tag', tag)
+        if tag in self.renamings: return self.renamings[tag]
+        return tag
+            
+    def redact_iconic_fields(self, iconic_fields):
+        redactions, renamings = self.redactions, self.renamings
+        for field_name, icon_bucket in list(iconic_fields.items()):
+            if field_name in renamings:
+                del iconic_fields[field_name]
+                field_name = renamings[field_name]
+            icon_bucket = list(filter(lambda b: b != None, map(self.redact_iconic_record, icon_bucket)))
+            iconic_fields[field_name] = icon_bucket
+        return iconic_fields
+            
+    def redact_iconic_record(self, iconic_record):
+        redactions, renamings = self.redactions, self.renamings
+        if iconic_record['icon'] in renamings:
+            iconic_record['icon'] = renamings[iconic_record['icon']]
+        if 'name' in iconic_record and iconic_record['name'] in redactions: return None
+        elif 'name' in iconic_record and iconic_record['name'] in renamings:
+            iconic_record['name'] = renamings[iconic_record['name']]
+        if not 'names' in iconic_record: return iconic_record
+        names = self.redact_list(iconic_record['names'])
+        if len(names) == 1:
+            del iconic_record['names']
+            iconic_record['name'] = names[0]
+        elif len(names) == 0:
+            return None
+        else:
+            iconic_record['names'] = names
+        return iconic_record
+            
+    def redact_icons(self, icons):
+        redactions, renamings = self.redactions, self.renamings
+        for icon_bucket in icons.values():
+            for key, icon in list(icon_bucket.items()):
+                if icon in renamings:
+                    icon_bucket[key] = renamings[icon]
+                if key in redactions:
+                    del icon_bucket[key]
+                elif key in renamings:
+                    icon_bucket[renamings[key]] = icon_bucket[key]
+                    del icon_bucket[key]
+                    key = renamings[key]
+        return icons
+            
+    def redact_list(self, words):
+        redactions, renamings = self.redactions, self.renamings
+        renamed = map(lambda w: renamings[w] if w in renamings else w, words)
+        redacted = list(filter(lambda w: w not in redactions, renamed))
+        if len(redacted) == len(words): return words
+        words[0:] = redacted
+        return words
+        
+    def redacting(self, project_name, key, value):
+        print('redacting "%s" due to %s %s' % (project_name, key, value))
+        return None
+        
+            
 class Builder:
-    def __init__(self):
+    def __init__(self, library_path, data_dir, template_dir, website_dir):
         self.failures = 0
+        self.library_path = expanduser(library_path)
+        self.data_dir = expanduser(data_dir)
+        self.template_dir = expanduser(template_dir)
+        self.website_dir = expanduser(website_dir)
         
     def build_all(self):
-        template_dir = expanduser(config.template_dir)
-        website_dir = expanduser(config.website_dir)
+        template_dir, website_dir = self.template_dir, self.website_dir
         templates = sorted(glob(join(template_dir, '*')))
         if len(templates) == 0:
             print('**error: no template files found in %s' % template_dir, file=stderr)
@@ -301,8 +449,7 @@ class Builder:
             if options.verbose: print('mkdir %s' % website_dir)
             mkdir(website_dir)
             
-        data_dir = expanduser(config.data_dir)
-        data_path = join(data_dir, 'library.json')
+        data_path = join(self.data_dir, 'library.json')
         command = ['jinja2', template_path, data_path]
         if options.debug: print(' '.join(command))
         
@@ -335,12 +482,19 @@ def main(args=None):
     global options
     options = make_parser().parse_args(args)
     lib = Library()
+    if options.redact:
+        Redactor().redact_library(lib)
     
-    data_dir =  expanduser(config.data_dir)
-    lib.write(join(data_dir, 'library.json'))
-    builder = Builder()
+    # get these from the library rather than the global config in case
+    # the redaction process has altered the values
+    data_dir =  expanduser(lib.root['config']['data_dir'])
+    template_dir = expanduser(lib.root['config']['template_dir'])
+    website_dir = expanduser(lib.root['config']['website_dir'])
+    library_path = join(data_dir, 'library.json')
+    lib.write(library_path)
+    builder = Builder(library_path, data_dir, template_dir, website_dir)
     count = builder.build_all()
-    if not options.silent: print('updated %d files in %s' % (count, config.website_dir))
+    if not options.silent: print('updated %d files in %s' % (count, website_dir))
     
 if __name__ == '__main__':
     try:

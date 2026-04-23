@@ -409,6 +409,31 @@ def create_configuration_files(config_dir, confirm_paths=False):
         💵 Paid
         💸 Unpaid
     ''')
+    create_values_file(join(config_dir, 'redact.txt'), '''
+        # When you run the build script with -r/--redact then any project whose
+        # bucket, name, type, status, or tag matches anything in this file will
+        # be excluded from the website.
+        
+        Paid
+        Private
+        *Jack* # any project whose name or description contains "Jack"
+    ''')
+    create_values_file(join(config_dir, 'rename.txt'), '''
+        # When you run the build script with -r/--redact then any project whose
+        # bucket, name, type, status, or tag matches anything in this file will
+        # be renamed when the website is constructed.
+        #
+        # In addition, any config values related to the website output will be
+        # renamed, so you can use this to change the title, published folder, etc.
+        #
+        # For example, you might use the status "Shitcanned" with a poop emoji, but
+        # when sharing your project website with the world you prefer "Abandoned" with
+        # a trash can emoji.
+        
+        {website_dir}: {website_dir}-redacted
+        Shitcanned: Abandoned
+        💩: 🗑️
+    '''.format(website_dir=website_dir))
     
 def prompt(question, default_value):
     if default_value != None:
@@ -432,12 +457,14 @@ def create_values_file(path, content):
     create_configuration_file(path, content)
     
 def process(path, destination_path):
+    basic_config_files = set(['config.txt', 'fields.txt', 'rename.txt'])
+    value_only_files = set(['redact.txt'])
     if not path.endswith('.txt'):
         raise ConfigError('Not a text file: %s' % path, None, None, None)
-    if basename(path) == 'config.txt':
+    if basename(path) in basic_config_files:
         process_config_file(path, destination_path)
-    elif basename(path) == 'fields.txt':
-        process_config_file(path, destination_path)
+    elif basename(path) in value_only_files:
+        process_value_only_file(path, destination_path)
     elif basename(path).endswith('_values.txt'):
         process_values_file(path, destination_path)
     elif basename(path).endswith('_patterns.txt'):
@@ -475,6 +502,33 @@ def process_config_content(lines, filename=None):
             raise ConfigError('expected "key: value"', filename, i, line)
         key, value = parts
         config[key] = value
+    return config
+    
+def process_value_only_file(path, destination_path):
+    '''
+    Reads a file like redact.txt file and writes the corresponding json file
+    '''
+    if options.verbose: print('reading %s' % path)
+    with open(path, encoding="utf-8") as file:
+        data = process_value_only_content(file, path)
+    if options.verbose:
+        preamble = 'NOT ' if options.testing else ''
+        print('%swriting %s' % (preamble, destination_path))
+    if options.testing: return
+    with open(destination_path, 'w', encoding="utf-8") as file:
+        # note that ensure_ascii=False == "leave emoji as emoji"
+        file.write(json.dumps(data, indent=4, ensure_ascii=False))
+
+def process_value_only_content(lines, filename=None):
+    '''
+    Returns a list of all of the comma- and newline-separated phrases.
+    '''
+    config = list()
+    for i, line in enumerate(lines, start=1):
+        line = re.sub(r'\s*#.*', '', line).strip()
+        if len(line) == 0: continue
+        parts = re.split(r', *', line)
+        config.extend(parts)
     return config
     
 def process_values_file(path, destination_path):

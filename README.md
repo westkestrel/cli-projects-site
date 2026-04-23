@@ -188,3 +188,16 @@ You can edit these files, and when you build the website with
 `bin/build_projects_website.py [-S|-k]` your edits will override the values extracted from
 the project README and METADATA files.  You can run `bind/scan.py -B` or `bin/build.py -B`
 to update the README and METADATA files with 
+
+## Redacting and Renaming
+
+These scripts are intended to create a project website for your own personal consumption
+as you look at your own projects.  But maybe you want to share your project history with
+other people.  And maybe when you do so you want to hold back certain projects, or rename
+them in some way.  To that end, in the *config/* folder you can create *redact.txt* and
+*rename.txt* files, and then run the build script with **-r/--redact** to customize the
+website creation.
+
+By default your redacted website will replace the standard website. If you want to change
+that, add a line to the *rename.txt* file that changes the output folder.
+
