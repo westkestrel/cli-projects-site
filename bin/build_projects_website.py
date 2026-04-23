@@ -6,6 +6,7 @@ describes your projects.
 
 from argparse import ArgumentParser
 from collections import OrderedDict
+from datetime import datetime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, join
 from os import mkdir
@@ -53,9 +54,21 @@ class Library:
         self.unclassified_statuses = set()
         self.unclassified_tags = set()
 
+        self.populate_core_fields()
         if should_read_all:
             self.brief_manager.read_briefs()
             self.read_all()
+            
+    def populate_core_fields(self):
+        now = localtime(datetime.now().timestamp())
+        self.root['year'] = strftime('%Y', now)
+        self.root['month'] = strftime('%B', now)
+        self.root['day'] = strftime('%d', now)
+        self.root['weekday'] = strftime('%A', now)
+        self.root['date'] = strftime(config.html_date_format, now)
+        self.root['time'] = strftime('%I:%M:%S %p', now)
+        self.root['time12'] = strftime('%I:%M:%S %p', now)
+        self.root['time24'] = strftime('%H:%M:%S', now)
         
     def read_all(self):
         data_dir = config.data_dir
