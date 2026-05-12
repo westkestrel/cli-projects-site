@@ -1,5 +1,11 @@
 # Projects-Website Change Log
 
+## 1.3.0 (12-May-2026)
+
+The build script is now able to process subfolders within the template folder, and will ignore any subfolders or files whose names begin with an underscore character.
+
+Reorganize the template folder to put several files into underscore-prefixed subfolders, and replace the .js and .css files with the latest versions from the **js1-klib** library. 
+
 ## 1.2.0 (21-Apr-2026)
 
 ### Improved installation experience
