@@ -49,11 +49,15 @@ p.instructions {
 section.filter-controls {
     display: flex;
     flex-direction: row;
+    justify-content: space-between;
 }
 
 section.filter-controls .column {
     display: flex;
     flex-direction: column;
+    margin-right: 1em;
+    flex-grow: 1;
+    max-width: 40%; /* don't let any one column dominate */
 }
 
 section.filter-controls ul {
