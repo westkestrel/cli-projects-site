@@ -216,6 +216,7 @@ class Library:
             if 'type' not in project: project_type = 'no-type'
             elif project['type'] == 'None': project_type = 'no-type'
             else: project_type = project['type']
+            self.update_css_class(project)
             
             if 'status' not in project: project_status = 'no-status'
             elif project['status'] == 'None': project_status = 'no-status'
@@ -225,22 +226,6 @@ class Library:
             if 'tags' not in project: project_tags = 'no-tag'
             elif project['tags'] == 'None': project_tags = 'no-tag'
             else: project_tags = project['tags']
-            
-            type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
-            if 'alt_type' in project:
-                alt_type_class = re.sub(r'[\W_]+', '-', project['alt_type']).lower().strip('-')
-            else:
-                alt_type_class = ''
-            for key, value in {
-                '0': 'zero-', '1': 'one-', '2': 'two-', '3': 'three-', '4': 'four-',
-                '5': 'five-', '6': 'six-', '7': 'seven-', '8': 'eight-', '9': 'nine-'
-            }.items():
-                type_class = type_class.replace(key, value)
-                alt_type_class = alt_type_class.replace(key, value)
-            status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
-            tags_class = re.sub(r'[\W_]+', '-', project_tags).lower().strip('-')
-            css_classes = filter(lambda s: s != '', [type_class, alt_type_class, status_class, tags_class])
-            project['css_class'] = ' '.join(css_classes).strip()
             try: type_icons = self.root['icons']['type']
             except KeyError: type_icons = {}
             try: status_icons = self.root['icons']['status']
@@ -263,6 +248,36 @@ class Library:
             if 'has_alt_types' not in self.root: self.root['has_alt_types'] = OrderedDict()
             self.root['has_alt_types'][basename(bucket_name)] = True
         self.root['buckets'][basename(bucket_name)] = data
+    
+    def update_css_class(self, project):
+        if 'type' not in project: project_type = 'no-type'
+        elif project['type'] == 'None': project_type = 'no-type'
+        else: project_type = project['type']
+        
+        if 'status' not in project: project_status = 'no-status'
+        elif project['status'] == 'None': project_status = 'no-status'
+        else: project_status = project['status']
+        
+        if 'tags' not in project and 'tag' in project: project['tags'] = project['tag']
+        if 'tags' not in project: project_tags = 'no-tag'
+        elif project['tags'] == 'None': project_tags = 'no-tag'
+        else: project_tags = project['tags']
+        
+        type_class = re.sub(r'[\W_]+', '-', project_type).lower().strip('-')
+        if 'alt_type' in project:
+            alt_type_class = re.sub(r'[\W_]+', '-', project['alt_type']).lower().strip('-')
+        else:
+            alt_type_class = ''
+        for key, value in {
+            '0': 'zero-', '1': 'one-', '2': 'two-', '3': 'three-', '4': 'four-',
+            '5': 'five-', '6': 'six-', '7': 'seven-', '8': 'eight-', '9': 'nine-'
+        }.items():
+            type_class = type_class.replace(key, value)
+            alt_type_class = alt_type_class.replace(key, value)
+        status_class = re.sub(r'[\W_]+', '-', project_status).lower().strip('-')
+        tags_class = re.sub(r'[\W_]+', '-', project_tags).lower().strip('-')
+        css_classes = filter(lambda s: s != '', [type_class, alt_type_class, status_class, tags_class])
+        project['css_class'] = ' '.join(css_classes).strip()
         
     def process_unclassified_values(self):
         self.root['unclassified'] = OrderedDict()
