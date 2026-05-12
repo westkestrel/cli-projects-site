@@ -358,7 +358,7 @@ class Redactor:
         project['tags'] = tags
         if self.redaction_regex != None:
             if re.match(self.redaction_regex, project['name']): return None
-            if re.match(self.redaction_regex, project['description']): return None
+            if 'description' in project and re.match(self.redaction_regex, project['description']): return None
         return project
         
     def redact_tag(self, tag):
