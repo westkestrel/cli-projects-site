@@ -1,0 +1,102 @@
+/**
+* Copyright (c) 2026-present, Mike West
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* 
+*/
+
+/** (version 0.3.0)
+ * Styling rules for use with the *collapsible.js* script. You can use these styles, or
+ * can disregard them and do your own styling; the script works correctly in either case.
+ *
+ * To use these styles, add the following CSS class names to an ancestor element of
+ * your collapsible sections (e.g., the `body` tag).
+ * - (no class required): buttons in collapse-control element (the first child of the element with the collapsible-section class) are styled like ordinary content.
+ * - dim-when-collapsed: the collapse-control element is rendered semi-transparent when the content is collapsed.
+ * - line-through-when-collapsed: the collapse-control element has a line drawn through it when the content is collapsed. This can be combined with dimming.
+ * - rotate-chevron-when-collapsed: the collapse-control element is prefixed with a downward-pointing triangle, which is rotated to point to the right when the content is collapsed.
+ * - animate-when-collapsed: the collapsing content shrinks to nothing rather than simply disappearing. Note that this does not behave correctly if the collapsing content consists of table rows, as table rows do not honour min-height.
+ */
+ 
+/* If there is a button in the collapsible section we don't want to style it as a button */
+.collapsible-section > :first-child button {
+    border: none;
+    background: none;
+    padding: 0;
+    margin: 0;
+    color: inherit;
+    font-size: inherit;
+    font-style: inherit;
+    font-weight: inherit;
+    text-decoration: inherit;
+}
+
+.dim-when-collapsed .collapsible-section.collapsed > :first-child,
+.dim-when-collapsed.collapsible-section.collapsed > :first-child {
+    opacity: 0.5;
+}
+
+.line-through-when-collapsed .collapsible-section.collapsed > :first-child:not(:hover),
+.line-through-when-collapsed.collapsible-section.collapsed > :first-child:not(:hover),
+.line-through-when-collapsed .collapsible-section:not(.collapsed) > :first-child:hover,
+.line-through-when-collapsed.collapsible-section:not(.collapsed) > :first-child:hover {
+    text-decoration-line: line-through;
+}
+/* The previous rules do not apply to buttons in header cells, so we need to target those explicitly */
+.line-through-when-collapsed .collapsible-section.collapsed > :first-child:not(:hover) th button,
+.line-through-when-collapsed.collapsible-section.collapsed > :first-child:not(:hover) th button,
+.line-through-when-collapsed .collapsible-section:not(.collapsed) > :first-child:hover th button,
+.line-through-when-collapsed.collapsible-section:not(.collapsed) > :first-child:hover th button {
+    text-decoration-line: line-through;
+}
+
+.rotate-chevron-when-collapsed .collapsible-section > :first-child button::before,
+.rotate-chevron-when-collapsed.collapsible-section > :first-child button::before {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    line-height: 1em;
+    text-align: center;
+    content: "►";
+    margin-right: 0.25em;
+    transform: rotate(90deg);
+    transition: transform 0.5s ease;
+}
+.rotate-chevron-when-collapsed .collapsible-section.collapsed > :first-child button::before,
+.rotate-chevron-when-collapsed.collapsible-section.collapsed > :first-child button::before {
+    transform: rotate(0deg);
+    transition: transform 0.5s ease;
+}
+
+.animate-when-collapsed .collapsible-section > :not(:first-child),
+.animate-when-collapsed .collapsible-section > tr:not(:first-child) > * {
+    display: block !important; /* must override the display:none injected by the JavaScript */
+    max-height: 200vh;
+    overflow: hidden;
+    transition: margin-top 0.5s, margin-bottom 0.5s, padding-top 0.5s, padding-bottom 0.5s, max-height 0.5s;
+}
+.animate-when-collapsed .collapsible-section.collapsed > :not(:first-child),
+.animate-when-collapsed .collapsible-section.collapsed > tr:not(:first-child) > * {
+    max-height: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    transition: margin-top 0.5s, margin-bottom 0.5s, padding-top 0.5s, padding-bottom 0.5s, max-height 0.5s;
+}

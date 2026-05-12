@@ -1,9 +1,33 @@
 /**
+* Copyright (c) 2026-present, Mike West
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* 
+*/
+
+/** (version 0.2.0)
  * Filterbox allows you to use checkboxes to show and hide rows of data.
  *
  * To use it, you ensure that your HTML has a controls block. Note that if you omit the
- * id="" and for="" tags on the input and label, they will be inferred from the
+ * `id=""` and `for=""` tags on the input and label, they will be inferred from the
  * label contents.  In the code below
+ *
  * - the first checkbox toggles "cats" (despite the label being "Felines")
  * - the second toggles "dogs" (inferred from the label)
  * - the third toggles "bugs", and ignores the explanatory text after the colon
@@ -12,6 +36,7 @@
  * - the sixth toggles "birds-and-bees" (spaces become hyphens)
  * - the seventh toggles both "birds" and "Bees" (commas separate items)
  *
+ * ```html
  * <ul class="filterbox-controls filter-animals">
  * <li><input type="checkbox" id="cats"><label for="cats">Felines</label></li>
  * <li><input type="checkbox"><label>Dogs</label></li>
@@ -21,9 +46,11 @@
  * <li><input type="checkbox"><label>Birds and Bees</label></li>
  * <li><input type="checkbox"><label>Birds, Bees</label></li>
  * </ul>
+ * ```
  *
  * Your HTML also must have a data block:
  *
+ * ```html
  * <table class="filterbox-data filter-animals">
  * <th>...</th>
  * <tr class="cats">...</tr>
@@ -35,6 +62,7 @@
  * <tr class="bees">...</tr>
  * <tr class="birds-and-bees">...</tr>
  * </table>
+ * ```
  *
  * When the user toggles the checkbox for a given id, all data elements with that
  * CSS class have their visibility toggled. In the case above if the user toggles
@@ -43,19 +71,17 @@
  *
  * ***
  *
- * This filterbox.js file pairs very nicely with the checkbox-radio-group.js file which
- * will allow the user to command-click (or long-press) to toggle the visibility of all
- * items *except* the one they just selected, and with the stored-checkbox-state.js
- * file which preserves checkbox state across page-loads using local storage.
+ * Filterbox pairs very nicely with checkbox-radio-group, which allow the user to
+ * command-click (or long-press) to toggle the visibility of all items *except* the one
+ * they just selected, and with stored-checkbox-state, which preserves checkbox state
+ * across page-loads using local storage.
  *
- * If you do use these files you must include them *after* this file, so that this file's
- * setup will have created the checkbox html elements (and attached its event listeners)
- * before those files attempt to work with them.
+ * It also pairs nicely with stored-checkbox-state, which preserves checkbox state in
+ * local-storage between page-loads.
  *
- * ***
- *
- * This filterbox.js file also pairs with any of the hide-checkboxes-and-*.css
- * CSS files to decorate the controls with something other than a simple checkbox.
+ * If you do use either or both of these other files you must include them *after* this
+ * one, so that this file's setup will have created the checkbox html elements (and
+ * attached its event listeners) before those files attempt to work with them.
  *
  */
  
@@ -102,7 +128,7 @@ const shouldLookForCombos = true
  * Turn '3d' into 'three-d' and '32flavors' into 'three-two-flavors' since CSS class names
  * cannot begin with a digit.
  */
-const digitsToWords = text => {
+const digitsToWords = (text) => {
     return text
         .replace('0', 'zero-')
         .replace('1', 'one-')
@@ -114,6 +140,7 @@ const digitsToWords = text => {
         .replace('7', 'seven-')
         .replace('8', 'eight-')
         .replace('9', 'nine-')
+        .replace(/\W+/g, '-')
 }
 
 /**

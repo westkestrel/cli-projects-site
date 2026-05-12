@@ -1,31 +1,50 @@
 /**
- * Checkbox Radio Groups allows you to have checkboxes which behave like radio buttons
- * when Command-clicked or long-pressed.
+* Copyright (c) 2026-present, Mike West
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* 
+*/
+
+/** (version 0.3.0)
+ * Radio Checkbox Groups allow you to have checkboxes which behave like radio buttons
+ * when Command-clicked or long-pressed. This is *not* a standalone script; if you include
+ * it you must first include *longpress.js*.
  *
- * To use it, add the class 'checkbox-radio-group' to a container.  Now any checkboxes
+ * To use it, add the class 'radio-checkbox-group' to a container.  Now any checkboxes
  * within the container will behave normally when toggled, unless the Command key (on
  * a mac) or Control key (on Windows) is held, or if the checkbox is long-pressed on a
  * phone or tablet or long-clicked on computer.  Any of these gestures will trigger the
- * checkbox-radio-group behavior.
+ * radio-checkbox-group behavior.
  *
- * The checkbox-radio-group behavior is very straightforward. If any checkbox other than
+ * The radio-checkbox-group behavior is very straightforward. If any checkbox other than
  * the target is checked then the target will be "soloed", which is to say that it will
  * be checked and all of the others will be unchecked. If all checkboxes other than the
  * target are unchecked then the soloing will be cancelled and all checkboxes will be
  * checked.
  *
- * Note that soloing and de-soloing will trigger 'change' events for many of the
+ * Note that soloing and de-soloing will trigger **change** events for many of the
  * checkboxes in the group. If your change-handling code needs to know which checkbox
- * was actually clicked, you can check event.target.isSoloTarget; this will be true for
- * the checkbox the user clicked on and undefined for all the rest.
- *
- * ***
- *
- * This checkbox-radio-group.js file pairs very nicely with the stored-checkbox-state.js
- * file, which preserves checkbox state across page-loads using local storage.
+ * was actually clicked, you can check `event.target.isSoloTarget`; this will be `true`
+ * for the checkbox the user clicked on and `undefined` for all the rest.
  */
  
-const radioCheckboxesBootstrap = () => {
+const radioCheckboxGroupsBootstrap = () => {
 
 const wireUpCheckboxes = (checkboxes, labels) => {
     var metaKey = false
@@ -49,21 +68,6 @@ const wireUpCheckboxes = (checkboxes, labels) => {
     }
     
     /**
-     * Returns the checkbox associated with the given element, which may be
-     * - a checkbox
-     * - a label with a 'for' attribute
-     * - a child of such a label
-     *
-     * Returns null if no such checkbox can be found.
-     */
-    const getAssociatedCheckbox = element => {
-        if (!element) return null;
-        if (element.tagName === 'INPUT' && element.getAttribute('type') === 'checkbox') return element;
-        const id = getCheckboxId(element)
-        return id && document.getElementById(id)
-    }
-    
-    /**
      * Returns true iff any checkbox other than the given target is currently checked.
      */
     const isAnyOtherCheckboxChecked = target => {
@@ -76,9 +80,14 @@ const wireUpCheckboxes = (checkboxes, labels) => {
     
     /**
      * Sets the state of the checkbox and dispatches a change event.
+     *
+     * As an optimization, we can bypass dispatching the event if the checkbox is already
+     * in the desired state.  We must not perform this bypass if the checkbox in question
+     * was the event target, though, since it will have just changed state and we *do*
+     * want to dispatch the change event.
      */
-    const setChecked = (checkbox, flag) => {
-        if (checkbox.checked == flag) return
+    const setChecked = (checkbox, flag, eventTargetCheckbox) => {
+        if (checkbox.checked == flag && checkbox !== eventTargetCheckbox) return
         checkbox.checked = flag
         const event = new Event('change')
         event.target = checkbox
@@ -90,7 +99,7 @@ const wireUpCheckboxes = (checkboxes, labels) => {
      */
     const solo = target => {
         for (checkbox of checkboxes) {
-            setChecked(checkbox, target === checkbox)
+            setChecked(checkbox, target === checkbox, target)
         }
     }
     
@@ -101,75 +110,6 @@ const wireUpCheckboxes = (checkboxes, labels) => {
         for (checkbox of checkboxes) {
             setChecked(checkbox, true)
         }
-    }
-    
-    /**
-     * Event handler for mousedown or touchstart events on either checkboxes or their labels.
-     *
-     * Clears any outstanding long-press timers and starts a new one.
-     */
-    const hit = event => {
-        metaKey = event.metaKey
-        justPerformedLongPress = false
-        if (timeout) clearTimeout(timeout)
-        timeout = setTimeout(longPress, 1000, event)
-        return false
-    }
-    
-    /**
-     * Event handler for mouseup or touchend events on either checkboxes or their labels.
-     *
-     * Clears any outstanding long-press timers to prevent the long-press action from occurring.
-     */
-    const release = event => {
-        metaKey = event.metaKey
-        if (timeout) {
-            clearTimeout(timeout)
-            timeout = null
-        }
-        
-        // command-clicking is the same as a long-press
-        if (event.metaKey && !justPerformedLongPress) {
-            longPress(event)
-        }
-        
-        // This gets a bit tricky... If the user long-pressed on a checkbox then we will
-        // have soloed (or de-soloed) the checkboxes when the long-press timer went off.
-        // But then the user releases the mouse button or lifts their finger and the
-        // built-in checkbox toggling occurs and deselects the target.
-        // We want to prevent this so the target remains selected, but it appears that
-        // event.preventDefault() on the mouseup event does not prevent the change event
-        // from occurring... so we need to take a different approach.
-        if (justPerformedLongPress) {
-            const checkbox = getAssociatedCheckbox(event.target)
-            const wasChecked = checkbox.checked
-            
-            // On macOS we can simply toggle the checkbox manually (to un-checked) and then
-            // when the built-in checkbox-toggling code executes it will be set to checked
-            // and the event handlers will fire. That second firing is unnecessary, but
-            // harmless since the checkbox state is correct.
-            if (checkbox) {
-                checkbox.checked = !wasChecked
-            } else {
-                console.error('Could not find a checkbox associated with event', event)
-            }
-            
-            // Unfortunately, the above pre-toggling does NOT work on iOS, so instead
-            // we need to wait until the change event has propagated and then change it
-            // back. This is unfortunate because any logic associated with toggling the
-            // checkbox will fire twice (once with checked==false and then again with
-            // checked=true), but it seems to happen before the screen redraws so there
-            // is no visible flicker.
-            setTimeout(() => {
-                if (checkbox.checked != wasChecked) {
-                    checkbox.checked = wasChecked;
-                    const event = new Event('change')
-                    event.target = checkbox
-                    checkbox.dispatchEvent(event)
-                }
-            }, 0)
-        }
-        return false
     }
     
     /**
@@ -200,23 +140,15 @@ const wireUpCheckboxes = (checkboxes, labels) => {
     }
     
     for (checkbox of checkboxes) {
-        checkbox.addEventListener('mousedown', hit)
-        checkbox.addEventListener('mouseup', release)
-        checkbox.addEventListener('touchstart', hit)
-        checkbox.addEventListener('touchend', release)
-    }
-    for (label of labels) {
-        label.addEventListener('mousedown', hit)
-        label.addEventListener('mouseup', release)
-        label.addEventListener('touchstart', hit)
-        label.addEventListener('touchend', release)
+        checkbox.addEventListener('longpress', longPress)
     }
 }
 
 const injectCSS = () => {
     cssRules = `
-        .checkbox-radio-group input,
-        .checkbox-radio-group label {
+        .radio-checkbox-group input,
+        .radio-checkbox-group label {
+            /* Prevent iOS from opening the standard Copy menu when the user long-presses */
             -webkit-touch-callout: none !important;
             -webkit-user-select: none !important;
         }
@@ -229,7 +161,7 @@ const injectCSS = () => {
 }
 
 const wireUpRadioGroups = () => {
-    const containers = document.getElementsByClassName('checkbox-radio-group')
+    const containers = document.getElementsByClassName('radio-checkbox-group')
     for (container of containers) {
         const checkboxes = Array.from(container.getElementsByTagName('input'))
             .filter(e => e.getAttribute('type') == 'checkbox')
@@ -245,4 +177,4 @@ window.addEventListener('load', wireUpRadioGroups)
 
 }
 
-radioCheckboxesBootstrap()
+radioCheckboxGroupsBootstrap()

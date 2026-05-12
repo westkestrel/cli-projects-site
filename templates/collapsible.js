@@ -1,85 +1,132 @@
 /**
- * Collapsible Containers allow you to expand and collapse dom with the click of the mouse.
+* Copyright (c) 2026-present, Mike West
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in all
+* copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+* SOFTWARE.
+* 
+*/
+
+/** (version 0.3.0)
+ * Collapsible allows you to expand and collapse sections with the click of the mouse.
  *
- * If you decorate a container with class="collapsible-container" then its first child
- * becomes a clickable accordion control that will show or hide all of the remaining
- * elements of the section.
+ * To use it, you have a give a container (typically a DIV, SECTION, or TABLE) the class
+ * "collapsible-section".  The first child of the container (typically a H2 or TR) will
+ * be turned into a trigger that, when clicked, causes the remaining children to appear
+ * or disappear.
  *
- * If you decorate a container with class="collapsible-container animated" then the
- * expanding and collapsing will be animated. If you do this you will probably get best
- * results if the collapsible container has exactly two children -- the collapse-control
- * and a container that holds all of the other content.
+ * Note that the first element child does not *have* to include a button, but it is good
+ * practice for it to do so as this helps with the accessibility of your web page.
  *
- * ***
+ * e.g.,
+ * ```html
+ * <section class="collapsible-section">
+ * <h2><button>Rutabagas</button></h2>
+ * <p>Rutabagas are a vegetable.</p>
+ * <p>Some people like them. Some people don't</p>
+ * </section>
+ * ```
  *
- * This collapsible-container.js file pairs very nicely with the checkbox-radio-group.js
- * file which will allow the user to command-click (or long-press) to collapse all 
- * containers *except* the one they just selected, and with the stored-checkbox-state.js
- * file which preserves checkbox state across page-loads using local storage.
- *
- * If you do use these files you must include them *after* this file, so that this file's
- * setup will have created the checkbox html elements (and added its event listeners)
- * before those files attempt to work with them.
- *
- * ***
- *
- * This collapsible-container.js file also pairs with any of the hide-checkboxes-and-*.css
- * CSS files to decorate the controls with something other than a simple checkbox.
+ * If you also include the *longpress.js* script then the user can long-press or
+ * Command-click (Control-click on Windows) a button to expand the section and collapse
+ * all others.  You must include the *longpress.js* script before *collapsible.js*.
  */
  
-const collapsibleContainerBootstrap = () => {
+const collapsibleBootstrap = () => {
 
-/**
- * Given <table><thead><tr><th>...</th></tr></thead></table>, returns the th element.
- */
-const getFirstInnermostElement = element => {
-    if (!element.firstElementChild) return element
-    return getFirstInnermostElement(element.firstElementChild)
+const getLocalStorageKey = (element) => {
+    if (!element) return 'collapse-NULL'
+    return'collapse-' + element.innerHTML.replace(/<.*?>/g, '').replace(/\W+/g, '-')
 }
 
-const setCollapsed = (section, flag) => {
-    const classNames = section.getAttribute('class').split(/ +/).filter(s => s != 'collapsed' && s != 'expanded')
-    if (flag) classNames.push('collapsed')
-    else classNames.push('expanded')
-    section.setAttribute('class', classNames.join(' '))
+const isCollapsed = (elementOrClassString) => {
+    classNames = elementOrClassString.getAttribute
+        ? elementOrClassString.getAttribute('class')
+        : elementOrClassString
+    return (classNames || '').split(' ').some(s => s == 'collapsed')
 }
 
-const makeOnChangeHandler = section => {
-    return event => {
-        setCollapsed(section, !event.target.checked)
+const toggle = (event, solo) => {
+    if (event.target.justHadLongPress) {
+        event.preventDefault
+        return true
     }
+    
+    var targetContainer = event.target
+    var className = null
+    while (targetContainer) {
+        className = targetContainer.getAttribute('class') || ''
+        if (className.indexOf('collapsible-section') != -1) break;
+        targetContainer = targetContainer.parentNode
+    }
+    if (!targetContainer) {
+        console.error('no collapsible-section found!')
+        return
+    }
+    const containers = solo
+    ? Array.from(document.getElementsByClassName('collapsible-section'))
+    : [targetContainer]
+    
+    // if we are soloing, we always expand the target.  If not, we toggle
+    const shouldCollapseTarget = solo
+    ? false
+    : !isCollapsed(className)
+    
+    // if we are soloing, we collapse the others unless they were all already collapsed
+    // if we are not soloing this flag is irrelevant since we won't process any other elements
+    const shouldCollapseOthers = containers.some(e => e !== targetContainer && !isCollapsed(e))
+
+    for (container of containers) {
+        const shouldCollapse = container === targetContainer ? shouldCollapseTarget : shouldCollapseOthers
+        window.localStorage.setItem(getLocalStorageKey(container.firstElementChild), shouldCollapse)
+        const classNames = container.getAttribute('class').split(' ').filter(s => s != 'collapsed')
+        if (shouldCollapse) {
+            classNames.push('collapsed')
+        }
+        container.setAttribute('class', classNames.join(' '))
+    }
+}
+
+const longPress = (event) => {
+    toggle(event, true)
 }
 
 const wireUpCollapsibles = () => {
-    const collapsibles = document.getElementsByClassName('collapsible-container')
+    const collapsibles = document.getElementsByClassName('collapsible-section')
     for (section of collapsibles) {
-        const innermost = getFirstInnermostElement(section)
-        const id = 's-' + innermost.innerHTML.toLocaleLowerCase().replace(/\W/g, '-')
-        const input = document.createElement('input')
-        input.setAttribute('type', 'checkbox')
-        input.setAttribute('id', id)
-        input.checked = true
-        const label = document.createElement('label')
-        label.setAttribute('for', id)
-        label.innerHTML = innermost.innerHTML
-        innermost.innerHTML = ''
-        innermost.appendChild(input)
-        innermost.appendChild(label)
-        input.addEventListener('change', makeOnChangeHandler(section))
+        const key = getLocalStorageKey(section.firstElementChild)
+        const first = section.firstElementChild
+        const target = first.getElementsByTagName('button')[0] || first
+        target.addEventListener('click', toggle)
+        target.addEventListener('longpress', longPress)
+        if (window.localStorage.getItem(key) == 'true') {
+            section.setAttribute('class', section.getAttribute('class') + ' collapsed')
+        }
     }
     cssRules = `
-        .collapsible-container.collapsed:not(.animated) > :not(:first-child) {
+        .collapsible-section > :first-child button,
+        .collapsible-section > :first-child input,
+        .collapsible-section > :first-child label {
+            /* Prevent iOS from opening the standard Copy menu when the user long-presses */
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+        }
+        .collapsible-section.collapsed > :not(:first-child) {
             display: none;
-        }
-        .collapsible-container.animated.collapsed > :not(:first-child) {
-            overflow: hidden;
-            max-height: 0px;
-            transition: max-height 0.5s ease
-        }
-        .collapsible-container.animated:not(.collapsed) > :not(:first-child) {
-            overflow: hidden;
-            max-height: 100vh;
-            transition: max-height 0.5s ease
         }
     `.replace(/\n {4,8}/g, '\n')
     const head = document.getElementsByTagName('head')[0]
@@ -93,4 +140,4 @@ window.addEventListener('load', wireUpCollapsibles)
 
 }
 
-collapsibleContainerBootstrap()
+collapsibleBootstrap()
