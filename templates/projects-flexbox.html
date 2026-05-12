@@ -11,15 +11,15 @@ Jump to
 {% endfor %}
 </p>
 
-<div class="hide-checkboxes-and-use-disclosures hide-checkboxes-and-line-through-labels checkbox-radio-group stored-checkbox-state">
+<div class="animate-when-collapsed line-through-when-collapsed rotate-chevron-when-collapsed">
 {% for bucket in buckets | reverse %}
 {% if has_alt_types %}
 {% set alt_type_class = ' has-alt-types' %}
 {% else %}
 {% set alt_type_class = '' %}
 {% endif %}
-<section class="bucket collapsible-container animated filterbox-data filter-type filter-status filter-tag{{alt_type_class}}">
-    <h3 id="b-{{bucket | urlize}}">{{ bucket }}</h3>
+<section class="bucket collapsible-section filterbox-data filter-type filter-status filter-tag{{alt_type_class}}">
+    <h3 id="b-{{bucket | urlize}}"><button>{{ bucket }}</button></h3>
     <div>
     {% if config.alphabetic_project_sort | lower == 'true' %}
         {% set projectList = buckets[bucket] | sort(attribute='name', case_sensitive=False) %}

@@ -11,7 +11,7 @@ Jump to
 {% endfor %}
 </p>
 
-<table class="filterbox-data filter-type filter-status filter-meta">
+<table class="filterbox-data filter-type filter-status filter-meta line-through-when-collapsed rotate-chevron-when-collapsed">
 <tr class="header">
   <th class="date"><span>Date</span></th>
   <th class="type" title="Type"><span>Ty</span></th>
@@ -22,10 +22,10 @@ Jump to
 </tr>
 
 {% for bucket in buckets | reverse %}
-<tbody class="hide-checkboxes-and-use-disclosures collapsible-container stored-checkbox-state">
+<tbody class="collapsible-section filterbox-data filter-type filter-status filter-tag{{alt_type_class}}">
 <tr id="b-{{bucket | urlize}}" class="bucket">
   <th colspan="5">
-    {{ bucket }}
+    <button>{{ bucket }}</button>
   </th>
 </tr>
 {% if config.alphabetic_project_sort | lower == 'true' %}
