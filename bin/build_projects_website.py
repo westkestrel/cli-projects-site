@@ -9,7 +9,7 @@ from collections import OrderedDict
 from datetime import datetime
 from glob import glob
 from os.path import basename, dirname, exists, expanduser, join
-from os import mkdir
+from os import mkdir, walk
 from sys import argv, exit, stderr
 from time import localtime, strftime, strptime
 import json
@@ -431,7 +431,11 @@ class Builder:
         
     def build_all(self):
         template_dir, website_dir = self.template_dir, self.website_dir
-        templates = sorted(glob(join(template_dir, '*')))
+        templates = []
+        for root, dirs, files in walk(template_dir):
+            dirs[0:] = sorted(filter(lambda d: not d.startswith('.') and not d.startswith('_'), dirs))
+            files[0:] = sorted(filter(lambda f: not f.startswith('.'), files))
+            templates.extend(map(lambda f: join(root, f), files))
         if len(templates) == 0:
             print('**error: no template files found in %s' % template_dir, file=stderr)
         for template in templates:
