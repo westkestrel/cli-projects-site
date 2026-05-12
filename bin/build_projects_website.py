@@ -366,14 +366,25 @@ class Redactor:
                 if project[key] in redactions: return self.redacting(project['name'], 'key', project[key])
                 if project[key] in renamings: project[key] = renamings[project[key]]
             except KeyError: pass
-        if 'tags' not in project: return project
-        for tag in project['tags']:
-            if tag in redactions: return self.redacting(project['name'], 'tag', tag)
-        tags = list(filter(lambda t: t != None, map(self.redact_tag, project['tags'])))
-        project['tags'] = tags
+            
+        if 'tags' in project:
+            for tag in project['tags']:
+                if tag in redactions: return self.redacting(project['name'], 'tag', tag)
+            tags = list(filter(lambda t: t != None, map(self.redact_tag, project['tags'])))
+            project['tags'] = tags
+        
         if self.redaction_regex != None:
             if re.match(self.redaction_regex, project['name']): return None
             if 'description' in project and re.match(self.redaction_regex, project['description']): return None
+            
+        # before rebuilding the css_class we must return the tags to the form of a single string
+        try: tag_array = project['tags']
+        except KeyError: tag_array = []
+        if len(tag_array) > 0: project['tags'] = ', '.join(tag_array)
+        else: del project['tags']
+        Library.update_css_class(None, project) # pass None for self, as update_css_class() does not refer to self
+        if len(tag_array) > 0: project['tags'] = tag_array
+        
         return project
         
     def redact_tag(self, tag):
