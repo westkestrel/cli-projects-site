@@ -27,6 +27,10 @@ p + ul {
     margin-block-start: 0.5em;
 }
 
+footer {
+    margin-top: 5em;
+}
+
 /* styles required by the the klib libary */
 
 {% include '_lib/collapsible.css' %}
