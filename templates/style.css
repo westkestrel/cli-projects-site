@@ -27,10 +27,12 @@ p + ul {
     margin-block-start: 0.5em;
 }
 
-{% include 'collapsible.css' %}
-{% include 'hide-checkboxes-and-dim-labels.css' %}
-{% include 'hide-checkboxes-and-line-through-labels.css' %}
-{% include 'hide-checkboxes-and-use-disclosures.css' %}
+/* styles required by the the klib libary */
+
+{% include '_lib/collapsible.css' %}
+{% include '_lib/hide-checkboxes-and-dim-labels.css' %}
+{% include '_lib/hide-checkboxes-and-line-through-labels.css' %}
+{% include '_lib/hide-checkboxes-and-use-disclosures.css' %}
 
 /* styles related to the row-visibility controls */
 
