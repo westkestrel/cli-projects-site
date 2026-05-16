@@ -21,7 +21,7 @@
 * 
 */
 
-/** (version 0.3.0)
+/** (version 0.4.0)
  * Collapsible allows you to expand and collapse sections with the click of the mouse.
  *
  * To use it, you have a give a container (typically a DIV, SECTION, or TABLE) the class
@@ -35,14 +35,14 @@
  * e.g.,
  * ```html
  * <section class="collapsible-section">
- * <h2><button>Rutabagas</button></h2>
- * <p>Rutabagas are a vegetable.</p>
- * <p>Some people like them. Some people don't</p>
+ *   <h2><button>Rutabagas</button></h2>
+ *   <p>Rutabagas are a vegetable.</p>
+ *   <p>Some people like them. Some people don't</p>
  * </section>
  * ```
  *
  * If you also include the *longpress.js* script then the user can long-press or
- * Command-click (Control-click on Windows) a button to expand the section and collapse
+ * Option-click (Alt-click on Windows) a button to expand the section and collapse
  * all others.  You must include the *longpress.js* script before *collapsible.js*.
  */
  
@@ -62,7 +62,7 @@ const isCollapsed = (elementOrClassString) => {
 
 const toggle = (event, solo) => {
     if (event.target.justHadLongPress) {
-        event.preventDefault
+        event.preventDefault()
         return true
     }
     

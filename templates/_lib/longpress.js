@@ -21,11 +21,11 @@
 * 
 */
 
-/** (version 0.3.0)
+/** (version 0.4.0)
  * Generate a new **longpress** event when the user holds the mouse button (or their
  * finger on a touch-sensitive device) on a link, button, checkbox, or radio button.
- * On a Mac the user can also Command-click the element to generate this event, and on
- * Windows they can use Control-click.
+ * On a Mac the user can also Option-click the element to generate this event, and on
+ * Windows they can use Alt-click.
  *
  * If you write any code that uses the new longpress event, you must register your event
  * listeners in a window-load event handler, and you must register that handler *after*
@@ -55,18 +55,18 @@
  * 
  * If you register you handlers too early then the new **justHadLongPress** flag will not
  * have been added to the event target, and your code will end up performing both your
- * long-press and click operations if the user Command-clicks the element.
+ * long-press and click operations if the user Option-clicks the element.
  *
  * If you intend to support longpress events on an iOS device you will probably want to
  * prevent the system-standard Copy menu from coming up when the user long-presses. If
- * you add the css class `supports-longpress` a container then the Copy menu will be
+ * you add the css class `supports-longpress` to a container then the Copy menu will be
  * suppressed for all links, buttons, checkboxes, and input labels within the container.
  * You can also add the class directly to the link, button, checkbox, or label.
  */
  
 const longpressBootstrap = () => {
 
-    var metaKey = false
+    var altKey = false
     var justPerformedLongPress = false
     var timeout = null
 
@@ -95,7 +95,7 @@ const longpressBootstrap = () => {
     const hit = (event) => {
         justPerformedLongPress = false
         event.target.justHadLongPress = justPerformedLongPress
-        metaKey = event.metaKey
+        altKey = event.altKey
         if (timeout) clearTimeout(timeout)
         timeout = setTimeout(longPress, 1000, event)
         
@@ -114,16 +114,16 @@ const longpressBootstrap = () => {
             return true
         }
         
-        metaKey = event.metaKey
+        altKey = event.altKey
         if (timeout) {
             clearTimeout(timeout)
             timeout = null
         }
         
-        // command-clicking is the same as a long-press
-        if (event.metaKey && !justPerformedLongPress) {
+        // option-clicking is the same as a long-press
+        if (event.altKey && !justPerformedLongPress) {
             longPress(event)
-            event.preventDefault
+            event.preventDefault()
         }
         
         return true
@@ -155,7 +155,7 @@ const longpressBootstrap = () => {
      */
     const longPress = (event) => {
         timeout = null
-        metaKey = true
+        altKey = true
         const htmlFor = getControlId(event.target)
         const element = htmlFor ? document.getElementById(htmlFor) : event.target
         if (!element) {

@@ -21,11 +21,13 @@
 * 
 */
 
-/** (version 0.3.0)
+/** (version 0.3.2)
  * Given a DOM structure like
+ * ```html
  *      <ul class="hide-checkboxes-and-use-disclosures">
  *          <li><input type="checkbox" id="a"><label for="a">My Label</label></li>
  *      </ul>
+ * ```
  *
  * These CSS rules will hide the checkbox and will instead draw a disclosure triangle.
  * When the checkbox is checked and unchecked the triangle will animate a rotation from

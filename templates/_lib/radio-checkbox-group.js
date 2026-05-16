@@ -21,14 +21,14 @@
 * 
 */
 
-/** (version 0.3.0)
+/** (version 0.4.0)
  * Radio Checkbox Groups allow you to have checkboxes which behave like radio buttons
- * when Command-clicked or long-pressed. This is *not* a standalone script; if you include
+ * when Option-clicked or long-pressed. This is *not* a standalone script; if you include
  * it you must first include *longpress.js*.
  *
- * To use it, add the class 'radio-checkbox-group' to a container.  Now any checkboxes
- * within the container will behave normally when toggled, unless the Command key (on
- * a mac) or Control key (on Windows) is held, or if the checkbox is long-pressed on a
+ * To use it, add `class="radio-checkbox-group"` to a container.  Now any checkboxes
+ * within the container will behave normally when toggled, unless the Option key (on
+ * a Mac) or Alt key (on Windows) is held, or if the checkbox is long-pressed on a
  * phone or tablet or long-clicked on computer.  Any of these gestures will trigger the
  * radio-checkbox-group behavior.
  *
@@ -47,7 +47,6 @@
 const radioCheckboxGroupsBootstrap = () => {
 
 const wireUpCheckboxes = (checkboxes, labels) => {
-    var metaKey = false
     var justPerformedLongPress = false
     var timeout = null
     
@@ -120,7 +119,6 @@ const wireUpCheckboxes = (checkboxes, labels) => {
      */
     const longPress = event => {
         timeout = null
-        metaKey = true
         const htmlFor = getCheckboxId(event.target)
         const checkbox = htmlFor ? document.getElementById(htmlFor) : event.target
         if (!checkbox) {

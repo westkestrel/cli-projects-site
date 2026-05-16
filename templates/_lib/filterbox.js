@@ -21,7 +21,7 @@
 * 
 */
 
-/** (version 0.2.0)
+/** (version 0.4.1)
  * Filterbox allows you to use checkboxes to show and hide rows of data.
  *
  * To use it, you ensure that your HTML has a controls block. Note that if you omit the
@@ -38,13 +38,13 @@
  *
  * ```html
  * <ul class="filterbox-controls filter-animals">
- * <li><input type="checkbox" id="cats"><label for="cats">Felines</label></li>
- * <li><input type="checkbox"><label>Dogs</label></li>
- * <li><input type="checkbox"><label>Bugs: six-legged beasties</label></li>
- * <li><input type="checkbox"><label>Bugs (six-legged beasties)</label></li>
- * <li><input type="checkbox"><label>8-Legs (arachnids and octopi)</label></li>
- * <li><input type="checkbox"><label>Birds and Bees</label></li>
- * <li><input type="checkbox"><label>Birds, Bees</label></li>
+ *   <li><input type="checkbox" id="cats"><label for="cats">Felines</label></li>
+ *   <li><input type="checkbox"><label>Dogs</label></li>
+ *   <li><input type="checkbox"><label>Bugs: six-legged beasties</label></li>
+ *   <li><input type="checkbox"><label>Bugs (six-legged beasties)</label></li>
+ *   <li><input type="checkbox"><label>8-Legs (arachnids and octopi)</label></li>
+ *   <li><input type="checkbox"><label>Birds and Bees</label></li>
+ *   <li><input type="checkbox"><label>Birds, Bees</label></li>
  * </ul>
  * ```
  *
@@ -52,15 +52,14 @@
  *
  * ```html
  * <table class="filterbox-data filter-animals">
- * <th>...</th>
- * <tr class="cats">...</tr>
- * <tr class="cats">...</tr>
- * <tr class="dogs">...</tr>
- * <tr class="bugs">...</tr>
- * <tr class="eight-legs">...</tr>
- * <tr class="birds">...</tr>
- * <tr class="bees">...</tr>
- * <tr class="birds-and-bees">...</tr>
+ *   <tr class="cats">...</tr>
+ *   <tr class="cats">...</tr>
+ *   <tr class="dogs">...</tr>
+ *   <tr class="bugs">...</tr>
+ *   <tr class="eight-legs">...</tr>
+ *   <tr class="birds">...</tr>
+ *   <tr class="bees">...</tr>
+ *   <tr class="birds-and-bees">...</tr>
  * </table>
  * ```
  *
@@ -72,7 +71,7 @@
  * ***
  *
  * Filterbox pairs very nicely with checkbox-radio-group, which allow the user to
- * command-click (or long-press) to toggle the visibility of all items *except* the one
+ * Option-click (or long-press) to toggle the visibility of all items *except* the one
  * they just selected, and with stored-checkbox-state, which preserves checkbox state
  * across page-loads using local storage.
  *
