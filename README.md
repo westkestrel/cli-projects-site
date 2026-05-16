@@ -140,21 +140,23 @@ project-folder-scan process by running `bin/build_projects_website.py --skip-sca
 The first section of the generated website lists the possible project types and project
 status.  The values are organized into groups with icons (as described by the
 *XXX_values.txt* files in the *config/* folder), and clicking a group will toggle the
-visibility of matching projects in the table below. Command-clicking will toggle the
-visibility of all non-matching projects.
+visibility of matching projects in the table below. Option-clicking (macOS), Alt-clicking
+(Windows), or long-pressing (any platform) will toggle the visibility of all non-matching
+projects.
 
 ### Projects
 
-The second section of the website contains a table that lists all of the projects,
-grouped by containing folder (aka the *bucket* or *group*).  The groups are sorted in
-reverse order based on the **projects** glob pattern (e.g., if **projects** is _20??/* Active/*_
-then the active projects will be listed before the 2026 projects, which will be listed
-before the 2025 projects).
+The second section of the website lists all of the projects, grouped by containing folder
+(aka the *bucket* or *group*).  The groups are sorted in reverse order based on the
+**projects** glob pattern (e.g., if **projects** is _20??/* Active/*_ then the active
+projects will be listed before the 2026 projects, which will be listed before the 2025
+projects).  Long-pressing (or Option-clicking or Alt-clicking) the group name will
+collapse all other groups.
 
 Within a group, the projects are listed in a table in reverse chronological order. The
 table has columns for the project date (when it was finished, abandoned, or otherwise last
 modified), the project type and status, the project name, and the project description. 
-The type and status are represented by icons from te previous section, and hovering over
+The type and status are represented by icons from the previous section, and hovering over
 them presents a tooltip with the type or status text.
 
 ### Project type and alt_type
