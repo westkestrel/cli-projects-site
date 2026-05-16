@@ -1,5 +1,9 @@
 # Projects-Website Change Log
 
+### 1.3.1 (16-May-2026)
+
+Update to js1-klib 0.4.1, which now uses Option-click (macOS) and Alt-click (Windows) to trigger "treat checkbox like a radio-button group" behaviour.
+
 ## 1.3.0 (12-May-2026)
 
 The build script is now able to process subfolders within the template folder, and will ignore any subfolders or files whose names begin with an underscore character.
